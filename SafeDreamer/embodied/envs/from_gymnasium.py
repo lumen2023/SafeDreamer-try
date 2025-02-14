@@ -7,9 +7,13 @@ import gymnasium as gym
 
 class FromGymnasium(embodied.Env):
 
-  def __init__(self, env, obs_key='image', act_key='action', **kwargs):
+  def __init__(self, env, obs_key='observation', act_key='action', **kwargs):
+    # 假设 kwargs 中有不必要的参数 platform
+    if 'platform' in kwargs:
+        del kwargs['platform']  # 删除 platform 参数
     if isinstance(env, str):
-      self._env = gym.make(env, **kwargs)
+      # self._env = gym.make(env, render_mode='human') # render_mode='human'
+      self._env = gym.make(env, **kwargs) # render_mode='human'
     else:
       assert not kwargs, kwargs
       self._env = env
@@ -66,17 +70,48 @@ class FromGymnasium(embodied.Env):
     return self._obs(obs, 0.0, 0.0, is_first=True)
 
   def step(self, action):
+    """
+    执行环境的一个步骤。
+
+    参数:
+      action (dict): 包含要执行的动作的信息。
+
+    返回:
+      obs: 环境的当前观测值。
+      reward: 获得的奖励。
+      cost: 产生的成本。
+      is_last: 是否是序列的最后一步。
+      is_terminal: 是否达到了终止状态。
+    """
+    # 检查是否需要重置环境
     if action['reset'] or self._done:
       self._done = False
       obs, info = self._env.reset()
       return self._obs(obs, 0.0, 0.0, is_first=True)
+
+    # 根据动作字典或键获取动作值
     if self._act_dict:
       action = self._unflatten(action)
     else:
       action = action[self._act_key]
+
+    # 备注：以下代码段被注释掉，可能是因为它们代表了不同的环境交互模式或调试代码
     # if action[0] < 0.0:
       # action[0] = 0.0
-    obs, reward, cost, terminated, truncated, self._info = self._env.step(action)
+    # obs, reward, cost, terminated, truncated, self._info = self._env.step(action)
+    # obs, reward, terminated, truncated, self._info = self._env.step(action)
+
+    # 执行环境步骤并处理返回值
+    result = self._env.step(action)
+    if len(result) == 6:
+      obs, reward, cost, terminated, truncated, self._info = result
+    elif len(result) == 5:
+      obs, reward, terminated, truncated, self._info = result
+      cost = self._info['cost']
+    else:
+      raise ValueError("Unexpected number of return values from self._env.step(action)")
+
+    # 累加不同类型的代价
     if 'cost_vases_contact' in self._info.keys():
       self.cost_vases_contact += self._info['cost_vases_contact']
     if 'cost_vases_velocity' in self._info.keys():
@@ -85,14 +120,22 @@ class FromGymnasium(embodied.Env):
       self.cost_hazards += self._info['cost_hazards']
     if 'cost_gremlins' in self._info.keys():
       self.cost_gremlins += self._info['cost_gremlins']
+
+    # 更新总成本
     self.cost += cost
+
+    # 更新完成状态
     self._done = terminated or truncated
+
+    # 如果完成，重置成本计数器
     if self._done:
       self.cost = 0
       self.cost_vases_contact = 0
       self.cost_vases_velocity = 0
       self.cost_hazards = 0
       self.cost_gremlins = 0
+
+    # 返回观测值，奖励，成本，以及是否是最后一步和是否是终止状态
     return self._obs(
         obs, reward, cost,
         is_last=bool(self._done),

@@ -21,6 +21,7 @@ class SafetyGymCoor(embodied.Env):
       env = safety_gymnasium.make(env,render_mode='rgb_array',camera_name='fixedfar', width=64, height=64)
     elif mode=='eval':
       env = safety_gymnasium.make(env,render_mode='rgb_array',camera_name='fixedfar', width=1024, height=1024)
+      # env = safety_gymnasium.make(env, render_mode='human', camera_name='fixedfar', width=1024, height=1024)
     self._mode = mode
     self._dmenv = env
     from . import from_gymnasium

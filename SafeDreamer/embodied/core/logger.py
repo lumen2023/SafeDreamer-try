@@ -170,38 +170,79 @@ class TensorBoardOutput(AsyncOutput):
       self._promise = None
 
   def _write(self, summaries):
+    """
+    将摘要数据写入TensorBoard事件文件。
+
+    参数:
+    summaries (list): 包含摘要数据的列表，每个元素为一个三元组 (step, name, value)，
+                      其中 step 是训练步骤，name 是摘要名称，value 是摘要值。
+
+    返回值:
+    无
+
+    """
+
     import tensorflow as tf
     reset = False
+
+    # 检查是否需要重置事件文件，如果设置了最大文件大小并且当前文件大小超过限制，则重置
     if self._maxsize:
-      result = self._promise and self._promise.result()
-      # print('Current TensorBoard event file size:', result)
-      reset = (self._promise and result >= self._maxsize)
-      self._promise = self._checker.submit(self._check)
+        result = self._promise and self._promise.result()
+        reset = (self._promise and result >= self._maxsize)
+        self._promise = self._checker.submit(self._check)
+
+    # 如果没有事件文件写入器或者需要重置，则创建新的事件文件写入器
     if not self._writer or reset:
-      print('Creating new TensorBoard event file writer.')
-      self._writer = tf.summary.create_file_writer(
-          self._logdir, flush_millis=1000, max_queue=10000)
+        print('Creating new TensorBoard event file writer.')
+        self._writer = tf.summary.create_file_writer(
+            self._logdir, flush_millis=1000, max_queue=10000)
+
     self._writer.set_as_default()
+
+    # 遍历所有摘要数据并根据其形状类型写入不同的摘要
     for step, name, value in summaries:
-      try:
-        if len(value.shape) == 0:
-          tf.summary.scalar(name, value, step)
-        elif len(value.shape) == 1:
-          if len(value) > 1024:
-            value = value.copy()
-            np.random.shuffle(value)
-            value = value[:1024]
-          tf.summary.histogram(name, value, step)
-        elif len(value.shape) == 2:
-          tf.summary.image(name, value, step)
-        elif len(value.shape) == 3:
-          tf.summary.image(name, value, step)
-        elif len(value.shape) == 4:
-          self._video_summary(name, value, step)
-      except Exception:
-        print('Error writing summary:', name)
-        raise
+        try:
+            a = len(value.shape)
+            # print("遍历所有摘要数据并根据其形状类型写入不同的摘要")
+            if len(value.shape) == 0:
+                # 写入标量摘要
+                tf.summary.scalar(name, value, step)
+            elif len(value.shape) == 1:
+                # 写入直方图摘要，如果数据长度超过1024则随机采样
+                if len(value) > 1024:
+                    value = value.copy()
+                    np.random.shuffle(value)
+                    value = value[:1024]
+                tf.summary.histogram(name, value, step)
+            # else:
+            #   continue
+            elif len(value.shape) == 2:
+              # 如果是二维数据，调整为三维后再转置
+              # value = np.expand_dims(value, axis=-1)  # 变为三维 (height, width, 1)
+              # value = np.transpose(value, [2, 0, 1])  # 调整为 (channels, height, width)
+              tf.summary.image(name, value, step)
+
+              ## old_verion
+              # 写入图像摘要
+              # tf.summary.image(name, value, step)
+            elif len(value.shape) == 3:
+                # 对于形状为 (batch_size, height, width) 的图像数据
+                # value = np.expand_dims(value, axis=-1)  # 添加通道维度 (batch_size, height, width, 1)
+                tf.summary.image(name, value, step)
+
+                ## old_verion
+                # 写入图像摘要
+                # tf.summary.image(name, value, step)
+            elif len(value.shape) == 4:
+                # 写入视频摘要
+                self._video_summary(name, value, step)
+        except Exception:
+            print('Error writing summary:', name)
+            raise
+
+    # 刷新写入器以确保所有摘要数据都被写入文件
     self._writer.flush()
+
 
   def _check(self):
     import tensorflow as tf

@@ -1,9 +1,13 @@
 defaults:
 
+#python SafeDreamer/train.py
+#--configs osrp_vector --method osrp_vector
+#--task safetygymcoor_SafetyPointGoal1-v0 --jax.logical_gpus 0
+
   seed: 0
   method: name
   task: dummy_disc
-  logdir: ./logdir_osrp_1124_costlimit2/
+  logdir: ./logdir_osrp_lyz_0213_costlimit2/
   replay: uniform
   replay_size: 1e6
   replay_online: False
@@ -218,6 +222,7 @@ osrp_vector:
   cost_limit: 0.0
   # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
   task: safetygymcoor_SafetyPointGoal1-v0
+#  task: safetygymcoor_safe-highway-fast-v0
   envs.amount: 1
   # vision, track, fixednear, fixedfar, vision_front_back
   env.safetygymcoor: {size: [64,64], repeat: 5, render: True, obs_key: 'observation', camera_name: 'fixedfar'}
@@ -226,8 +231,8 @@ osrp_vector:
   run.train_ratio: 512
   run:
     script: train_eval
-    steps: 1e7
-    eval_every: 1e4
+    steps: 1e7 #7
+    eval_every: 1e4 #4
     eval_initial: False
     eval_eps: 1
   rssm.deter: 256
@@ -241,7 +246,71 @@ osrp_vector:
   encoder: {mlp_keys: '.*', cnn_keys: '$^'}
   decoder: {mlp_keys: '.*', cnn_keys: '$^'}
 
+osrp_vector_highway-intersection:
+  task_behavior: Greedy
+  expl_behavior: CCEPlanner
+  use_cost: False
+  cost_weight: 1.0
+  cost_limit: 0.0
+  # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
+#  task: safetygymcoor_SafetyPointGoal-v0 safe-intersection-v0
+#  task: New-gym_safe-highway-fast-v0
+  task: New-gym_safe-intersection-v0
+  envs.amount: 1
+  # vision, track, fixednear, fixedfar, vision_front_back
+  env.safetygymcoor: {size: [64,64], repeat: 5, render: True, obs_key: 'observation', camera_name: 'fixedfar'}
+  loss_scales: {vector: 5.0}
+#  env.safetygymmujoco: {repeat: 1,render: False, obs_key: 'observation'}
+  run.train_ratio: 512
+  run:
+    script: train_eval
+    steps: 1e5 #7
+    eval_every: 1e2 #4
+    eval_initial: False
+    eval_eps: 1
+  rssm.deter: 256
+  .*\.cnn_depth: 32
+  .*\.layers: 2
+  .*\.units: 256
+  .*\.mlp_units: 256
+  .*\.mlp_layers: 3
+  rssm: {stoch: 16, classes: 16}
 
+  encoder: {mlp_keys: '.*', cnn_keys: '$^'}
+  decoder: {mlp_keys: '.*', cnn_keys: '$^'}
+
+osrp_vector_highway-fast:
+  task_behavior: Greedy
+  expl_behavior: CCEPlanner
+  use_cost: True
+  cost_weight: 1.0
+  cost_limit: 0.0
+  # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
+#  task: safetygymcoor_SafetyPointGoal-v0 safe-intersection-v0
+  task: New-gym_safe-highway-fast-v0
+#  task: New-gym_safe-intersection-v0
+  envs.amount: 1
+  # vision, track, fixednear, fixedfar, vision_front_back
+  env.safetygymcoor: {size: [64,64], repeat: 5, render: True, obs_key: 'observation', camera_name: 'fixedfar'}
+  loss_scales: {vector: 5.0}
+#  env.safetygymmujoco: {repeat: 1,render: False, obs_key: 'observation'}
+  run.train_ratio: 512
+  run:
+    script: train_eval
+    steps: 1e5 #7
+    eval_every: 1e2 #4
+    eval_initial: False
+    eval_eps: 1
+  rssm.deter: 256
+  .*\.cnn_depth: 32
+  .*\.layers: 2
+  .*\.units: 256
+  .*\.mlp_units: 256
+  .*\.mlp_layers: 3
+  rssm: {stoch: 16, classes: 16}
+
+  encoder: {mlp_keys: '.*', cnn_keys: '$^'}
+  decoder: {mlp_keys: '.*', cnn_keys: '$^'}
 
 dreamerv3:
   task_behavior: Greedy

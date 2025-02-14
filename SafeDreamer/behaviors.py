@@ -167,23 +167,50 @@ class PIDPlanner(nj.Module):
     return {}
 
   def cost_from_recon(self, recon):
-    hazards_size = 0.25
-    batch_size = recon.shape[0] * recon.shape[1]
-    hazard_obs = recon[:, :, 9:25].reshape(batch_size, -1, 2)
-    hazards_dist = jnp.sqrt(jnp.sum(jnp.square(hazard_obs), axis=2)).reshape(
-        batch_size,
-        -1,
-    )
+      """
+      从重建数据中计算成本。
 
-    condition = jnp.less_equal(hazards_dist, hazards_size)
-    cost = jnp.where(condition, 1.0, 0.0)
-    cost = cost.sum(1)
-    condition = jnp.greater_equal(cost, 1.0)
-    cost = jnp.where(condition, 1.0, 0.0)
+      此函数的目的是评估重建数据中潜在危险的数量和大小，通过计算距离在指定大小范围内的危险来确定成本。
 
+      参数:
+      - recon: 重建数据，其形状为(batch_size, sequence_length, feature_size)。
 
-    cost = cost.reshape(recon.shape[0], recon.shape[1])
-    return cost
+      返回:
+      - cost: 计算得到的成本，形状为(batch_size, sequence_length)。
+      """
+      # 定义危险区域的大小阈值
+      hazards_size = 0.25
+
+      # 计算批次大小，用于后续计算
+      batch_size = recon.shape[0] * recon.shape[1]
+
+      # 提取并重塑重建数据中与危险相关的部分，以便后续处理
+      hazard_obs = recon[:, :, 9:25].reshape(batch_size, -1, 2)
+
+      # 计算每个危险的距离，以便评估其是否在指定大小范围内
+      hazards_dist = jnp.sqrt(jnp.sum(jnp.square(hazard_obs), axis=2)).reshape(
+          batch_size,
+          -1,
+      )
+
+      # 检查危险距离是否小于等于危险大小阈值
+      condition = jnp.less_equal(hazards_dist, hazards_size)
+
+      # 根据条件计算成本：如果危险在指定大小范围内，则成本为1，否则为0
+      cost = jnp.where(condition, 1.0, 0.0)
+
+      # 计算每个批次中至少有一个危险的成本
+      cost = cost.sum(1)
+
+      # 检查成本是否大于等于1，如果是，则将成本设置为1，否则为0
+      condition = jnp.greater_equal(cost, 1.0)
+      cost = jnp.where(condition, 1.0, 0.0)
+
+      # 重塑成本数组，以匹配输入数据的批次和序列形状
+      cost = cost.reshape(recon.shape[0], recon.shape[1])
+
+      # 返回计算得到的成本
+      return cost
 
   def true_function(self, traj_ret, traj_cost, traj_pi_gaus):
     return -traj_cost, traj_pi_gaus['action']
@@ -295,23 +322,54 @@ class CCEPlanner(nj.Module):
     return {}
 
   def cost_from_recon(self, recon):
+    """
+    从重建数据中计算成本。
+
+    此函数的目的是通过检查重建数据中危害区域的距离来计算成本。
+    如果危害区域的距离小于或等于指定的大小，则该区域被视为不安全，会分配较高的成本。
+
+    参数:
+    - recon: 重建数据，形状为 (batch_size, sequence_length, data_dimension)。
+
+    返回:
+    - 成本矩阵，形状与输入数据的前两个维度相同。
+    """
+    # 定义危害区域的大小阈值
     hazards_size = 0.25
+
+    # 计算批量大小，用于后续处理
     batch_size = recon.shape[0] * recon.shape[1]
+
+    # 提取重建数据中危害区域的观测值，并重塑为 (batch_size, number_of_hazards, 2)
+    # hazard_obs = recon[:, :, 9:25].reshape(batch_size, -1, 2)
     hazard_obs = recon[:, :, 9:25].reshape(batch_size, -1, 2)
+
+    # 计算危害区域观测值的距离
     hazards_dist = jnp.sqrt(jnp.sum(jnp.square(hazard_obs), axis=2)).reshape(
         batch_size,
         -1,
     )
 
+    # 检查危害区域的距离是否小于或等于指定的大小
     condition = jnp.less_equal(hazards_dist, hazards_size)
+
+    # 根据条件计算成本：如果距离小于或等于指定大小，则成本为1.0，否则为0.0
     cost = jnp.where(condition, 1.0, 0.0)
+
+    # 计算每个样本的总成本
     cost = cost.sum(1)
+
+    # 可选的进一步处理：如果成本大于等于1.0，则设置为1.0，否则为0.0
+    # 这段代码被注释掉了，但保留在此以供参考
     # condition = jnp.greater_equal(cost, 1.0)
     # cost = jnp.where(condition, 1.0, 0.0)
 
-
+    # 将成本重新整形为与输入数据的前两个维度相匹配的形状
     cost = cost.reshape(recon.shape[0], recon.shape[1])
+
+    # 返回计算得到的成本
     return cost
+
 
   def true_function(self, ret, cost, traj_pi_gaus):
     return -cost, traj_pi_gaus['action']
@@ -327,71 +385,103 @@ class CCEPlanner(nj.Module):
 
   def policy(self, latent, state):
     """
-    Plan next action using TD-MPC inference.
-    obs: raw input observation.
-    eval_mode: uniform sampling and action noise is disabled during evaluation.
-    step: current time step. determines e.g. planning horizon.
-    t0: whether current step is the first step of an episode.
+    使用 TD-MPC 推理规划下一步动作。
+
+    参数:
+    - latent: 包含当前潜在状态的字典。
+    - state: 包含当前系统状态的字典，包括动作统计信息。
+
+    返回值:
+    - 一个包含动作及其相关统计信息的字典，以及更新后的动作均值和标准差。
     """
 
+    # 计算从策略中采样的轨迹数量
     num_pi_trajs = int(self.mixture_coef * self.num_samples)
+
     if num_pi_trajs > 0:
-      latent_pi = {k: jnp.repeat(v,num_pi_trajs,0) for k, v in latent.items()}
-      latent_pi['is_terminal'] = jnp.zeros(latent_pi['deter'].shape[0])
-      policy = lambda s: self.ac.actor(sg(s)).sample(seed=nj.rng())
-      traj_pi = self.wm.imagine(policy, latent_pi, self.horizon)
-    std = self.init_std * jnp.ones((self.horizon+1,)+self.act_space.shape)
+        # 重复潜在状态以生成多个轨迹
+        latent_pi = {k: jnp.repeat(v, num_pi_trajs, 0) for k, v in latent.items()}
+        latent_pi['is_terminal'] = jnp.zeros(latent_pi['deter'].shape[0])
+
+        # 定义策略函数并想象未来的轨迹
+        policy = lambda s: self.ac.actor(sg(s)).sample(seed=nj.rng())
+        traj_pi = self.wm.imagine(policy, latent_pi, self.horizon)
+
+    # 初始化动作的标准差
+    std = self.init_std * jnp.ones((self.horizon + 1,) + self.act_space.shape)
+
     if 'action_mean' in state.keys():
-      mean = jnp.roll(state['action_mean'], -1, axis=0)
-      mean = mean.at[-1].set(mean[-2])
+        # 如果存在动作均值，则滚动更新均值
+        mean = jnp.roll(state['action_mean'], -1, axis=0)
+        mean = mean.at[-1].set(mean[-2])
     else:
-      mean = jnp.zeros((self.horizon+1,)+self.act_space.shape)
+        # 否则初始化为零
+        mean = jnp.zeros((self.horizon + 1,) + self.act_space.shape)
 
     for i in range(self.iterations):
-      latent_gaus = {k: jnp.repeat(v,self.num_samples,0) for k, v in latent.items()}
-      latent_gaus['is_terminal'] = jnp.zeros(latent_gaus['deter'].shape[0])
-      latent_gaus['action_mean'] = mean
-      latent_gaus['action_std'] = std
-      def policy(s,horizon):
-        current_mean = s['action_mean'][horizon]
-        current_std = s['action_std'][horizon]
-        return jnp.clip(current_mean + current_std * jax.random.normal(nj.rng(),(self.num_samples,)+self.act_space.shape),-1, 1)
-      traj_gaus = self.wm.imagine(policy, latent_gaus, self.horizon, use_planner=True)
+        # 重复潜在状态以生成高斯分布的轨迹
+        latent_gaus = {k: jnp.repeat(v, self.num_samples, 0) for k, v in latent.items()}
+        latent_gaus['is_terminal'] = jnp.zeros(latent_gaus['deter'].shape[0])
+        latent_gaus['action_mean'] = mean
+        latent_gaus['action_std'] = std
 
-      if num_pi_trajs > 0:
-        traj_pi_gaus ={}
-        for k, v in traj_pi.items():
-          traj_pi_gaus[k] = jnp.concatenate([traj_pi[k],traj_gaus[k]],axis=1)
-      else:
-        traj_pi_gaus = traj_gaus
-      rew, ret, value = self.ac.critics['extr'].score(traj_pi_gaus)
-      traj_rew = ret[0]
-      if self.config.use_cost:
-        cost, cost_ret, cost_value = self.ac.cost_critics['extr'].score(traj_pi_gaus)
-        # [horizon,num_samples]
-        traj_cost = cost.sum(0)
-        # [num_samples]
-        traj_cost = traj_cost * (1000/ self.horizon)
+        # 定义高斯分布的策略函数
+        def policy(s, horizon):
+            current_mean = s['action_mean'][horizon]
+            current_std = s['action_std'][horizon]
+            return jnp.clip(current_mean + current_std * jax.random.normal(nj.rng(), (self.num_samples,) + self.act_space.shape), -1, 1)
 
-      else:
-        recon = self.wm.heads['decoder'](traj_pi_gaus)
-        cost = self.cost_from_recon(recon['observation'].mode())
-        # [horizon,num_samples]
-        traj_cost = cost.sum(0)
-        # [num_samples]
+        # 想象未来的轨迹并使用规划器
+        traj_gaus = self.wm.imagine(policy, latent_gaus, self.horizon, use_planner=True)
 
-      num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost<self.cost_limit, jnp.int32))
+        if num_pi_trajs > 0:
+            # 如果有策略轨迹，将策略轨迹和高斯轨迹合并
+            traj_pi_gaus = {}
+            for k, v in traj_pi.items():
+                traj_pi_gaus[k] = jnp.concatenate([traj_pi[k], traj_gaus[k]], axis=1)
+        else:
+            traj_pi_gaus = traj_gaus
 
-      elite_value, elite_actions = self.func_with_if_else(num_safe_traj, traj_rew, traj_cost, traj_pi_gaus)
+        # 计算奖励、回报和价值
+        rew, ret, value = self.ac.critics['extr'].score(traj_pi_gaus)
+        traj_rew = ret[0]
 
-      elite_idxs = jax.lax.top_k(elite_value, self.num_elites)[1]
-      elite_value, elite_actions = elite_value[elite_idxs], elite_actions[:,elite_idxs,:]
-      _mean = elite_actions.mean(axis=1)
-      _std = elite_actions.std(axis=1)
-      mean, std = self.momentum * mean + (1 - self.momentum) * _mean, _std
+        if self.config.use_cost:
+            # 如果使用成本计算，评估成本并调整成本
+            cost, cost_ret, cost_value = self.ac.cost_critics['extr'].score(traj_pi_gaus)
+            traj_cost = cost.sum(0) * (1000 / self.horizon)
+        else:
+            # 否则从重建中计算成本
+            recon = self.wm.heads['decoder'](traj_pi_gaus)
+            # print("Debug: recon keys ->", recon.keys())  # 打印 recon 的键
+            cost = self.cost_from_recon(recon['observation'].mode())
+            # cost = self.cost_from_recon(recon['image'].mode())
+            traj_cost = cost.sum(0)
 
+        # 计算安全轨迹的数量
+        num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost < self.cost_limit, jnp.int32))
+
+        # 根据安全轨迹选择精英动作
+        elite_value, elite_actions = self.func_with_if_else(num_safe_traj, traj_rew, traj_cost, traj_pi_gaus)
+
+        # 获取精英动作的索引并更新均值和标准差
+        elite_idxs = jax.lax.top_k(elite_value, self.num_elites)[1]
+        elite_value, elite_actions = elite_value[elite_idxs], elite_actions[:, elite_idxs, :]
+        _mean = elite_actions.mean(axis=1)
+        _std = elite_actions.std(axis=1)
+        mean, std = self.momentum * mean + (1 - self.momentum) * _mean, _std
+
+    # 获取最终的动作并返回结果
     a = mean[0]
-    return {'action': jnp.expand_dims(a,0), 'log_action_mean': jnp.expand_dims(mean.mean(axis=0),0), 'log_action_std': jnp.expand_dims(std.mean(axis=0),0), 'log_plan_num_safe_traj': jnp.expand_dims(num_safe_traj,0), 'log_plan_ret': jnp.expand_dims(ret[0,:].mean(axis=0),0), 'log_plan_cost':jnp.expand_dims(traj_cost.mean(axis=0),0)}, {'action_mean': mean, 'action_std': std}
+    return {
+        'action': jnp.expand_dims(a, 0),
+        'log_action_mean': jnp.expand_dims(mean.mean(axis=0), 0),
+        'log_action_std': jnp.expand_dims(std.mean(axis=0), 0),
+        'log_plan_num_safe_traj': jnp.expand_dims(num_safe_traj, 0),
+        'log_plan_ret': jnp.expand_dims(ret[0, :].mean(axis=0), 0),
+        'log_plan_cost': jnp.expand_dims(traj_cost.mean(axis=0), 0)
+    }, {'action_mean': mean, 'action_std': std}
+
 
 
 class CEMPlanner(nj.Module):
