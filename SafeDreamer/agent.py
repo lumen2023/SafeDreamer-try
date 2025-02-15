@@ -21,6 +21,10 @@ from . import ninjax as nj
 def symexp(x):
   return jnp.sign(x) * (jnp.exp(jnp.abs(x)) - 1)
 
+# 代码定义了一个名为 Agent 的类，继承自 nj.Module，主要用于强化学习中的代理（Agent）部分。
+# 使用了类似于强化学习中常见的世界模型（World Model）、任务行为（Task Behavior）以及探索行为（Exploration Behavior）的结构，
+# 结合了行为规划算法（如CEMPlanner、PIDPlanner等）
+
 @jaxagent.Wrapper
 class Agent(nj.Module):
 
@@ -44,19 +48,40 @@ class Agent(nj.Module):
       self.expl_behavior = getattr(behaviors, config.expl_behavior)(
           self.wm, self.act_space, self.config, name='expl_behavior')
 
+  # 此方法用于初始化代理的策略。
+  # 它会调用世界模型、任务行为和探索行为的初始化方法，
+  # 并返回初始化后的状态
   def policy_initial(self, batch_size):
     return (
         self.wm.initial(batch_size),
         self.task_behavior.initial(batch_size),
         self.expl_behavior.initial(batch_size))
 
+  # 此方法仅初始化世界模型，用于训练时的初始状态
   def train_initial(self, batch_size):
     return self.wm.initial(batch_size)
 
+  # 该方法定义了代理的行为策略，接受以下参数：
+  #
+  # obs: 当前的环境观察。
+  # state: 当前的状态，包括前一个时间步的潜在状态、任务状态和探索状态。
+  # mode: 模式
+  # 'train'（训练模式）、'eval'（评估模式）或'explore'（探索模式）
+
+  # 根据mode，代理会采取不同的行为：
+  # 训练模式(train)：代理根据当前的状态和观察来计算一个动作，并返回相应的输出。
+  # 评估模式(eval)：用于评估时，代理返回的输出不会有探索行为的干扰。
+  # 探索模式(explore)：代理使用探索行为（例如PID规划器）来进行更加随机的探索。
   def policy(self, obs, state, mode='train'):
     self.config.jax.jit and print('Tracing policy function.')
+
+    # 对观测进行预处理
     obs = self.preprocess(obs)
+
+    # 解构状态，获取先前的潜在状态、动作，以及任务和探索状态
     (prev_latent, prev_action), task_state, expl_state = state
+
+    # 如果使用PID控制器作为探索行为，更新探索和任务状态中的PID参数。
     if self.config.expl_behavior in ['PIDPlanner']:
       expl_state['lagrange_penalty'] = obs['lagrange_penalty']
       task_state['lagrange_penalty'] = obs['lagrange_penalty']
@@ -66,12 +91,18 @@ class Agent(nj.Module):
       task_state['lagrange_i'] = obs['lagrange_i']
       expl_state['lagrange_d'] = obs['lagrange_d']
       task_state['lagrange_d'] = obs['lagrange_d']
+
+    # 使用编码器对观测进行编码，得到嵌入表示。
     embed = self.wm.encoder(obs)
+
+    # 使用RSSM进行一步观测更新，得到新的潜在状态。
     latent, _ = self.wm.rssm.obs_step(
         prev_latent, prev_action, embed, obs['is_first'])
     #self.expl_behavior.policy(latent, expl_state)
     task_outs, task_state = self.task_behavior.policy(latent, task_state)
     expl_outs, expl_state = self.expl_behavior.policy(latent, expl_state)
+
+    # 根据模式选择策略输出。
     if mode == 'eval':
       if self.config.expl_behavior in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
         outs = expl_outs
@@ -94,20 +125,32 @@ class Agent(nj.Module):
         outs = task_outs
         outs['log_entropy'] = outs['action'].entropy()
 
+    # 对于非规划类探索行为，初始化一些日志变量
     if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
       outs['log_plan_action_mean'] = jnp.zeros(outs['action'].shape)
       outs['log_plan_action_std'] = jnp.zeros(outs['action'].shape)
       outs['log_plan_num_safe_traj'] = jnp.zeros(outs['action'].shape[:1])
       outs['log_plan_ret'] = jnp.zeros(outs['action'].shape[:1])
       outs['log_plan_cost'] = jnp.zeros(outs['action'].shape[:1])
+
+    # 对于PID控制器探索行为，记录PID参数。
     if self.config.expl_behavior in ['PIDPlanner']:
       outs['log_lagrange_penalty'] = obs['lagrange_penalty'] * jnp.ones(outs['action'].shape[:1])
       outs['log_lagrange_p'] = obs['lagrange_p'] * jnp.ones(outs['action'].shape[:1])
       outs['log_lagrange_i'] = obs['lagrange_i'] * jnp.ones(outs['action'].shape[:1])
       outs['log_lagrange_d'] = obs['lagrange_d'] * jnp.ones(outs['action'].shape[:1])
 
+    # 更新状态，包括当前的潜在状态、选定的动作、任务状态和探索状态。
     state = ((latent, outs['action']), task_state, expl_state)
+
+    # 返回策略输出和更新后的状态。
     return outs, state
+
+  # 该方法用于训练代理：
+  #
+  # data：包含训练数据。
+  # state：当前的状态。
+  # 方法通过调用世界模型和任务行为的训练方法来更新模型，并返回训练后的输出和状态。
 
   def train(self, data, state):
     self.config.jax.jit and print('Tracing train function.')

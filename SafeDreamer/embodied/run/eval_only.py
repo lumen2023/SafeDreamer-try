@@ -114,165 +114,179 @@ def eval_only(agent, env, logger, args, lag):
       )  # save as picture
       pylab.close()
   def per_episode(ep, video_buffer):
+    # 计算episode的长度（步数）和得分（奖励总和）
     length = len(ep['reward']) - 1
     score = float(ep['reward'].astype(np.float64).sum())
     logger.add({'length': length, 'score': score}, prefix='episode')
-    print(f'Episode has {length} steps and return {score:.1f}.')
+    print(f'Episode有 {length} 步骤和回报 {score:.1f}.')
 
+    # 如果episode包含cost信息，计算并记录总cost
     if 'cost' in ep.keys():
-      cost = float(ep['cost'].astype(np.float64).sum())
-      logger.add({'cost': cost}, prefix='episode')
-      print(f'Episode has {length} steps and cost {cost:.1f}.')
+        cost = float(ep['cost'].astype(np.float64).sum())
+        logger.add({'cost': cost}, prefix='episode')
+        print(f'Episode有 {length} 步骤和成本 {cost:.1f}.')
+
+    # 初始化统计数据字典
     stats = {}
+
+    # 根据配置项统计policy相关键值
     for key in args.log_keys_video:
-      if key in ep:
-        stats[f'policy_{key}'] = ep[key]
+        if key in ep:
+            stats[f'policy_{key}'] = ep[key]
+
+    # 遍历episode中的所有键值对
     for key, value in ep.items():
-      if not args.log_zeros and key not in nonzeros and (value == 0).all():
-        continue
-      nonzeros.add(key)
-      if re.match(args.log_keys_sum, key):
-        stats[f'sum_{key}'] = ep[key].sum()
-      if re.match(args.log_keys_mean, key):
-        stats[f'mean_{key}'] = ep[key].mean()
-      if re.match(args.log_keys_max, key):
-        stats[f'max_{key}'] = ep[key].max(0).mean()
+        # 如果配置不允许记录零值且当前键值全为零，则跳过
+        if not args.log_zeros and key not in nonzeros and (value == 0).all():
+            continue
+        nonzeros.add(key)
+
+        # 根据配置项统计sum, mean, max
+        if re.match(args.log_keys_sum, key):
+            stats[f'sum_{key}'] = ep[key].sum()
+        if re.match(args.log_keys_mean, key):
+            stats[f'mean_{key}'] = ep[key].mean()
+        if re.match(args.log_keys_max, key):
+            stats[f'max_{key}'] = ep[key].max(0).mean()
+
+    # 初始化groundtruth视频列表
     groundtruth_video_list = []
+
+    # 扩展episode数据
     ep_expend = {}
     for key, value in ep.items():
-      ep_expend[key] = np.expand_dims(value, 0)
+        ep_expend[key] = np.expand_dims(value, 0)
 
+    # 获取模型报告
     model_report = agent.report_eval(ep_expend)
 
-
+    # 如果episode包含image_orignal，保存groundtruth视频
     if 'image_orignal' in ep.keys():
-      for i in range(ep['image_orignal'].shape[0]):
-        groundtruth_video_list.append(ep['image_orignal'][i])
-      save_video(
-        frames=groundtruth_video_list,
-        video_folder=args.logdir,
-        name_prefix='groundtruth_video_list_' + str(step.value),
-        fps=20,
-      )
+        for i in range(ep['image_orignal'].shape[0]):
+            groundtruth_video_list.append(ep['image_orignal'][i])
+        save_video(
+            frames=groundtruth_video_list,
+            video_folder=args.logdir,
+            name_prefix='groundtruth_video_list_' + str(step.value),
+            fps=20,
+        )
+
+    # 如果episode包含image_orignal2，保存groundtruth视频
     groundtruth_video_list2 = []
     if 'image_orignal2' in ep.keys():
-      for i in range(ep['image_orignal2'].shape[0]):
-        groundtruth_video_list2.append(ep['image_orignal2'][i])
-      save_video(
-        frames=groundtruth_video_list2,
-        video_folder=args.logdir,
-        name_prefix='groundtruth_video_list2_'+ str(step.value),
-        fps=20,
-      )
+        for i in range(ep['image_orignal2'].shape[0]):
+            groundtruth_video_list2.append(ep['image_orignal2'][i])
+        save_video(
+            frames=groundtruth_video_list2,
+            video_folder=args.logdir,
+            name_prefix='groundtruth_video_list2_' + str(step.value),
+            fps=20,
+        )
+
+    # 如果episode包含image_far，保存groundtruth视频
     groundtruth_video_far_list = []
     if 'image_far' in ep.keys():
-      for i in range(ep['image_far'].shape[0]):
-        groundtruth_video_far_list.append(ep['image_far'][i])
-      save_video(
-        frames=groundtruth_video_far_list,
-        video_folder=args.logdir,
-        name_prefix='groundtruth_video_far_list_'+ str(step.value),
-        fps=20,
-      )
+        for i in range(ep['image_far'].shape[0]):
+            groundtruth_video_far_list.append(ep['image_far'][i])
+        save_video(
+            frames=groundtruth_video_far_list,
+            video_folder=args.logdir,
+            name_prefix='groundtruth_video_far_list_' + str(step.value),
+            fps=20,
+        )
 
+    # 如果模型报告包含openl_image2，保存预测视频
     if 'openl_image2' in model_report.keys():
-      resize_picture_list2 = []
-      video_list_pred2 = []
-      model_video2 = np.clip(255 * model_report['openl_image2'], 0, 255).astype(np.uint8)
-      for i in range(model_video2.shape[0]):
-        resize_picture2 = cv2.resize(model_video2[i], (1024,1024), interpolation=cv2.INTER_AREA)
-        resize_picture_list2.append(resize_picture2)
-        video_list_pred2.append(resize_picture2)
-      save_video(
-        frames=video_list_pred2,
-        video_folder=args.logdir,
-        name_prefix='video_list_pred2_' + str(step.value),
-        fps=20,
-      )
+        resize_picture_list2 = []
+        video_list_pred2 = []
+        model_video2 = np.clip(255 * model_report['openl_image2'], 0, 255).astype(np.uint8)
+        for i in range(model_video2.shape[0]):
+            resize_picture2 = cv2.resize(model_video2[i], (1024, 1024), interpolation=cv2.INTER_AREA)
+            resize_picture_list2.append(resize_picture2)
+            video_list_pred2.append(resize_picture2)
+        save_video(
+            frames=video_list_pred2,
+            video_folder=args.logdir,
+            name_prefix='video_list_pred2_' + str(step.value),
+            fps=20,
+        )
 
+    # 如果模型报告包含openl_image，保存预测视频并绘制对比图
     if 'openl_image' in model_report.keys():
-      resize_picture_list = []
-      video_list_pred = []
-      model_video = np.clip(255 * model_report['openl_image'], 0, 255).astype(np.uint8)
-      for i in range(model_video.shape[0]):
-        resize_picture = cv2.resize(model_video[i], (1024,1024), interpolation=cv2.INTER_AREA)
-        resize_picture_list.append(resize_picture)
-        video_list_pred.append(resize_picture)
-      save_video(
-        frames=video_list_pred,
-        video_folder=args.logdir,
-        name_prefix='video_list_pred_'+ str(step.value),
-        fps=20,
-      )
+        resize_picture_list = []
+        video_list_pred = []
+        model_video = np.clip(255 * model_report['openl_image'], 0, 255).astype(np.uint8)
+        for i in range(model_video.shape[0]):
+            resize_picture = cv2.resize(model_video[i], (1024, 1024), interpolation=cv2.INTER_AREA)
+            resize_picture_list.append(resize_picture)
+            video_list_pred.append(resize_picture)
+        save_video(
+            frames=video_list_pred,
+            video_folder=args.logdir,
+            name_prefix='video_list_pred_' + str(step.value),
+            fps=20,
+        )
+        video_list.draw_picture(args.logdir, str(step.value), groundtruth_video_list, resize_picture_list)
 
-      video_list.draw_picture(args.logdir, str(step.value), groundtruth_video_list, resize_picture_list)
-
-      # video_list_pred_truth = []
-      # for i in range(model_video.shape[0]):
-      #   video_list_pred_truth.append(np.concatenate([ep['image_far'][i],ep['image_orignal'][i], resize_picture_list[i], ep['image_orignal2'][i], resize_picture_list2[i]],axis=1))
-      # save_video(
-      #   frames=video_list_pred_truth,
-      #   video_folder=args.logdir,
-      #   name_prefix='video_list_pred_truth',
-      #   fps=30,
-      # )
-
+    # 如果模型报告包含openl_observation，绘制预测状态与真实状态的对比图
     if 'openl_observation' in model_report.keys():
-      pred_state = np.array(model_report['openl_observation'][0])
+        pred_state = np.array(model_report['openl_observation'][0])
 
-      pred_state_min = np.min(np.sqrt(np.sum(np.square(pred_state[:, 9:25].reshape(-1,8,2)),axis=-1)), axis=-1)
-      true_state_min = np.min(np.sqrt(np.sum(np.square(ep['observation'][:,9:25].reshape(-1,8,2)),axis=-1)), axis=-1)
-      draw_picture(
-                    timestep=0,
-                    num_episode=0,
-                    pred_state=pred_state_min,
-                    true_state=true_state_min,
-                    save_replay_path=args.logdir,
-                    name='obs_min',
-                  )
-
-      pred_state_mean = np.mean(pred_state, axis=-1)
-      true_state_mean = np.mean(ep['observation'], axis=-1)
-      draw_picture(
-                    timestep=0,
-                    num_episode=0,
-                    pred_state=pred_state_mean,
-                    true_state=true_state_mean,
-                    save_replay_path=args.logdir,
-                    name='obs_mean',
-                  )
-      for i in range(0, pred_state.shape[1]):
-        pred_state_idx = pred_state[:,i]
-        true_state_idx = ep['observation'][:,i]
+        # 绘制最小值对比图
+        pred_state_min = np.min(np.sqrt(np.sum(np.square(pred_state[:, 9:25].reshape(-1, 8, 2)), axis=-1)), axis=-1)
+        true_state_min = np.min(np.sqrt(np.sum(np.square(ep['observation'][:, 9:25].reshape(-1, 8, 2)), axis=-1)), axis=-1)
         draw_picture(
-                      timestep=0,
-                      num_episode=0,
-                      pred_state=pred_state_idx,
-                      true_state=true_state_idx,
-                      save_replay_path=args.logdir,
-                      name='obs_'+str(i),
-                    )
+            timestep=0,
+            num_episode=0,
+            pred_state=pred_state_min,
+            true_state=true_state_min,
+            save_replay_path=args.logdir,
+            name='obs_min',
+        )
 
-      pred_cost = np.array(model_report['openl_cost'][0])
-      true_cost = ep['cost'][:]
-      draw_picture(
-                    timestep=0,
-                    num_episode=0,
-                    pred_state=pred_cost,
-                    true_state=true_cost,
-                    save_replay_path=args.logdir,
-                    name='cost',
-                  )
-      # comput mean of loss of the true observation and the predicted observation
-      loss = 0
-      for i in range(pred_state.shape[0]):
-        loss += np.mean(np.square(pred_state[i] - ep['observation'][i]), axis=-1)
-      print("mean of loss", loss/pred_state.shape[0])
+        # 绘制均值对比图
+        pred_state_mean = np.mean(pred_state, axis=-1)
+        true_state_mean = np.mean(ep['observation'], axis=-1)
+        draw_picture(
+            timestep=0,
+            num_episode=0,
+            pred_state=pred_state_mean,
+            true_state=true_state_mean,
+            save_replay_path=args.logdir,
+            name='obs_mean',
+        )
 
+        # 绘制各维度对比图
+        for i in range(0, pred_state.shape[1]):
+            pred_state_idx = pred_state[:, i]
+            true_state_idx = ep['observation'][:, i]
+            draw_picture(
+                timestep=0,
+                num_episode=0,
+                pred_state=pred_state_idx,
+                true_state=true_state_idx,
+                save_replay_path=args.logdir,
+                name='obs_' + str(i),
+            )
 
-    #metrics.add(model_report, prefix='stats')
+        # # 绘制cost对比图
+        # pred_cost = np.array(model_report['openl_cost'][0])
+        # true_cost = ep['cost'][:]
+        # draw_picture(
+        #     timestep=0,
+        #     num_episode=0,
+        #     pred_state=pred_cost,
+        #     true_state=true_cost,
+        #     save_replay_path=args.logdir,
+        #     name='cost',
+        # )
+        #
+        # 计算预测状态与真实状态之间的平均损失
+        loss = 0
+        for i in range(pred_state.shape[0]):
+            loss += np.mean(np.square(pred_state[i] - ep['observation'][i]), axis=-1)
+        print("平均损失", loss / pred_state.shape[0])
 
-    #metrics.add(stats, prefix='stats')
 
   video_list = video_buffer()
   driver = embodied.Driver(env)

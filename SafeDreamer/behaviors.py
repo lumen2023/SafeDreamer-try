@@ -321,6 +321,7 @@ class CCEPlanner(nj.Module):
   def report(self, data):
     return {}
 
+# 维度似乎有差异
   def cost_from_recon(self, recon):
     """
     从重建数据中计算成本。
