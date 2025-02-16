@@ -50,6 +50,7 @@ def main(argv=None):
   args = embodied.Config(
       **config.run, logdir=logdir_algo, use_cost=config.use_cost,
       batch_steps=config.batch_size * config.batch_length)
+  print(config)
   # 设置可见的CUDA设备
   os.environ['CUDA_VISIBLE_DEVICES'] = str(config.jax.logical_gpus)
 

@@ -7,7 +7,7 @@ defaults:
   seed: 0
   method: name
   task: dummy_disc
-  logdir: ./logdir_osrp_lyz_0215_costlimit5/
+  logdir: ./logdir_osrp_lyz_0216_costlimit30/
   replay: uniform
   replay_size: 1e6
   replay_online: False
@@ -264,8 +264,8 @@ osrp_vector_highway-intersection:
   run.train_ratio: 512
   run:
     script: train_eval
-    steps: 1e5 #7
-    eval_every: 1e2 #4
+    steps: 1e7 #7
+    eval_every: 1e4 #4
     eval_initial: False
     eval_eps: 1
   rssm.deter: 256
@@ -284,7 +284,7 @@ osrp_vector_highway-fast:
   expl_behavior: CCEPlanner
   use_cost: True
   cost_weight: 1.0
-  cost_limit: 10
+  cost_limit: 200
   # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
 #  task: safetygymcoor_SafetyPointGoal-v0 safe-intersection-v0
   task: New-gym_safe-highway-fast-v0

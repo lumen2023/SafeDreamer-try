@@ -1,0 +1,25 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="highway-intersection-test" type="PythonConfigurationType" factoryName="Python">
+    <module name="SafeDreamer" />
+    <option name="ENV_FILES" value="" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="PYTHONUNBUFFERED" value="1" />
+    </envs>
+    <option name="SDK_HOME" value="" />
+    <option name="SDK_NAME" value="SafeDreamer" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/SafeDreamer" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/SafeDreamer/train.py" />
+    <option name="PARAMETERS" value="--configs osrp_vector_highway-intersection --method osrp_vector_highway-intersection --run.script eval_only --run.from_checkpoint $PROJECT_DIR$/SafeDreamer/logdir_osrp_lyz_0215_costlimit5/20250215-145013_osrp_vector_highway-intersection_New-gym_safe-intersection-v0_0/checkpoint.ckpt --run.steps 10000 --jax.logical_gpus 0" />
+    <option name="SHOW_COMMAND_LINE" value="false" />
+    <option name="EMULATE_TERMINAL" value="false" />
+    <option name="MODULE_MODE" value="false" />
+    <option name="REDIRECT_INPUT" value="false" />
+    <option name="INPUT_FILE" value="" />
+    <method v="2" />
+  </configuration>
+</component>
