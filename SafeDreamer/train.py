@@ -170,10 +170,10 @@ def make_logger(parsed, logdir, step, config):
       # JSONL格式文件输出，专门记录剧集分数和成本到scores.jsonl文件
       embodied.logger.JSONLOutput(logdir, 'scores.jsonl', 'episode/score|episode/cost'),
       # TensorBoard输出，用于TensorBoard可视化工具
-      embodied.logger.TensorBoardOutput(logdir),
+      # embodied.logger.TensorBoardOutput(logdir),
       # 以下输出方式被注释掉，表示可选的集成
       # WandB输出，用于Weights & Biases平台
-      # embodied.logger.WandBOutput(logdir, config),
+      embodied.logger.WandBOutput(logdir, config),
       # MLFlow输出，用于MLflow机器学习实验管理平台
       # embodied.logger.MLFlowOutput(logdir.name),
   ], multiplier)

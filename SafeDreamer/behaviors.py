@@ -15,22 +15,49 @@ tree_map = jax.tree_util.tree_map
 sg = lambda x: tree_map(jax.lax.stop_gradient, x)
 
 def cost_from_state(wm, state):
+  """
+  根据给定的状态计算成本。
+
+  该函数首先通过世界的模型（wm）的解码器头（'decoder'）重建状态，
+  然后计算重建状态中危害（hazards）的观测值与设定的危害大小之间的距离。
+  如果距离小于等于设定的危害大小，则对应的成本为1，否则为0。
+  最终返回的是每个状态对应的成本。
+
+  参数:
+  - wm: 世界的模型，包含对环境的理解和预测。
+  - state: 当前的状态，由环境或模型给出。
+
+  返回:
+  - cost: 每个状态对应的成本，基于状态中的危害观测计算得出。
+  """
+  # 通过模型的解码器头重建状态
   recon = wm.heads['decoder'](state)
+  # 获取重建状态的观测值的众数
   recon = recon['observation'].mode()
+  # 设定危害的大小
   hazards_size = 0.25
+  # 计算批次大小
   batch_size = recon.shape[0] * recon.shape[1]
+  # 提取并重塑危害的观测值
   hazard_obs = recon[:, :, 9:25].reshape(batch_size, -1, 2)
+  # 计算危害的距离
   hazards_dist = jnp.sqrt(jnp.sum(jnp.square(hazard_obs), axis=2)).reshape(
-      batch_size,
-      -1,
+    batch_size,
+    -1,
   )
+  # 判断危害的距离是否小于等于设定的危害大小
   condition = jnp.less_equal(hazards_dist, hazards_size)
+  # 根据条件计算成本
   cost = jnp.where(condition, 1.0, 0.0)
+  # 计算每个状态的总成本
   cost = cost.sum(1)
+  # 可选：将成本阈值设为1，即如果成本大于等于1，则设为1，否则为0
   # condition = jnp.greater_equal(cost, 1.0)
   # cost = jnp.where(condition, 1.0, 0.0)
 
+  # 重塑成本的形状以匹配输入状态的批次和序列长度
   cost = cost.reshape(recon.shape[0], recon.shape[1])
+  # 返回计算出的成本
   return cost
 
 class Greedy(nj.Module):

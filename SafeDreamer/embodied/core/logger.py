@@ -273,7 +273,7 @@ class WandBOutput:
     self._pattern = re.compile(pattern)
     import wandb
     wandb.init(
-        project="safedreamer",
+        project="safedreamer-intersection",
         name=logdir.name,
         id=logdir.name,
         # sync_tensorboard=True,,
