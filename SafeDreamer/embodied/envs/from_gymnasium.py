@@ -13,8 +13,8 @@ class FromGymnasium(embodied.Env):
       del kwargs['platform']  # 删除 platform 参数
     if isinstance(env, str):
       # self._env = gym.make(env, render_mode='human') # render_mode='human'
-      self._env = gym.make(env, **kwargs)  # render_mode='human'
-      # self._env = gym.make(env) # render_mode='human'
+      # self._env = gym.make(env, **kwargs)  # render_mode='human'
+      self._env = gym.make(env) # render_mode='human'
     else:
       assert not kwargs, kwargs
       self._env = env

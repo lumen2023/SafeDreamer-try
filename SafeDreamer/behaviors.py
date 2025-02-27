@@ -205,6 +205,7 @@ class PIDPlanner(nj.Module):
       返回:
       - cost: 计算得到的成本，形状为(batch_size, sequence_length)。
       """
+      print("PID-Planner--重建模型--cost")
       # 定义危险区域的大小阈值
       hazards_size = 0.25
 
@@ -362,6 +363,7 @@ class CCEPlanner(nj.Module):
     返回:
     - 成本矩阵，形状与输入数据的前两个维度相同。
     """
+    print("CCEPlanner--重建模型--cost")
     # 定义危害区域的大小阈值
     hazards_size = 0.25
 

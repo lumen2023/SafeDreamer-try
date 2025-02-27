@@ -71,7 +71,7 @@ class Driver:
     obs = self._env.step(acts)
     # speed = obs["info"][0].get('speed', 0)
     ####LYZ-物理信息记录###
-
+    # print("********:  ", len(self._env))
     # 添加lagrange惩罚和控制项到观察结果中
     obs['speed'] = obs["speed"] * np.ones(len(self._env))
     obs['lagrange_penalty'] = lag * np.ones(len(self._env))

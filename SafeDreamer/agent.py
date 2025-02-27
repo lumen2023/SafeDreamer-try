@@ -48,9 +48,7 @@ class Agent(nj.Module):
       self.expl_behavior = getattr(behaviors, config.expl_behavior)(
           self.wm, self.act_space, self.config, name='expl_behavior')
 
-  # 此方法用于初始化代理的策略。
-  # 它会调用世界模型、任务行为和探索行为的初始化方法，
-  # 并返回初始化后的状态
+  # 此方法用于初始化代理的策略。它会调用世界模型、任务行为和探索行为的初始化方法，
   def policy_initial(self, batch_size):
     return (
         self.wm.initial(batch_size),
@@ -62,17 +60,19 @@ class Agent(nj.Module):
     return self.wm.initial(batch_size)
 
   # 该方法定义了代理的行为策略，接受以下参数：
-  #
-  # obs: 当前的环境观察。
-  # state: 当前的状态，包括前一个时间步的潜在状态、任务状态和探索状态。
-  # mode: 模式
-  # 'train'（训练模式）、'eval'（评估模式）或'explore'（探索模式）
-
-  # 根据mode，代理会采取不同的行为：
-  # 训练模式(train)：代理根据当前的状态和观察来计算一个动作，并返回相应的输出。
-  # 评估模式(eval)：用于评估时，代理返回的输出不会有探索行为的干扰。
-  # 探索模式(explore)：代理使用探索行为（例如PID规划器）来进行更加随机的探索。
   def policy(self, obs, state, mode='train'):
+    #
+    # obs: 当前的环境观察。
+    # state: 当前的状态，包括前一个时间步的潜在状态、任务状态和探索状态。
+    # mode: 模式
+    # 'train'（训练模式）、'eval'（评估模式）或'explore'（探索模式）
+
+    # 根据mode，代理会采取不同的行为：
+    # 训练模式(train)：代理根据当前的状态和观察来计算一个动作，并返回相应的输出。
+    # 评估模式(eval)：用于评估时，代理返回的输出不会有探索行为的干扰。
+    # 探索模式(explore)：代理使用探索行为（例如PID规划器）来进行更加随机的探索。
+
+    print("进入Agent policy----")
     self.config.jax.jit and print('Tracing policy function.')
 
     # 对观测进行预处理
@@ -147,38 +147,87 @@ class Agent(nj.Module):
     return outs, state
 
   # 该方法用于训练代理：
-  #
-  # data：包含训练数据。
-  # state：当前的状态。
-  # 方法通过调用世界模型和任务行为的训练方法来更新模型，并返回训练后的输出和状态。
-
   def train(self, data, state):
+    """
+    训练方法。通过调用世界模型和任务行为的训练方法来更新模型，并返回训练后的输出和状态。
+
+    参数:
+    - data: 包含训练数据。
+    - state: 当前的状态。
+
+    返回:
+    - outs: 训练后的输出。
+    - state: 更新后的状态。
+    - metrics: 训练过程中的各种度量。
+    """
+    print("进入Agent train----")
+    # 如果配置了JAX的即时编译(jit)，则打印训练函数被追踪的消息。
     self.config.jax.jit and print('Tracing train function.')
+
+    # 初始化度量字典，用于收集训练过程中的各种度量。
     metrics = {}
+
+    # 对输入数据进行预处理。
     data = self.preprocess(data)
+
+    # 调用世界模型的训练方法，更新状态，并收集世界模型的输出和度量。
     state, wm_outs, mets = self.wm.train(data, state)
     metrics.update(mets)
+
+    # 构建上下文，包括原始数据和世界模型的后验(posterior)信息。
     context = {**data, **wm_outs['post']}
+
+    # 将上下文中的每个元素重新整形，以便后续处理。
     start = tree_map(lambda x: x.reshape([-1] + list(x.shape[2:])), context)
+
+    # 调用任务行为的训练方法，收集训练输出和度量，并更新度量字典。
     _, mets = self.task_behavior.train(self.wm.imagine, start, context)
     metrics.update(mets)
+
+    # 如果配置了探索行为且不是特定的规划器类型，则也对探索行为进行训练，并更新度量字典。
     if self.config.expl_behavior != 'None' and self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
       _, mets = self.expl_behavior.train(self.wm.imagine, start, context)
       metrics.update({'expl_' + key: value for key, value in mets.items()})
+
+    # 初始化输出字典，准备返回。
     outs = {}
+
+    # 返回训练后的输出、状态和度量。
     return outs, state, metrics
 
+
   def report(self, data):
-    self.config.jax.jit and print('Tracing report function.')
-    data = self.preprocess(data)
-    report = {}
-    report.update(self.wm.report(data))
-    mets = self.task_behavior.report(data)
-    report.update({f'task_{k}': v for k, v in mets.items()})
-    if self.expl_behavior is not self.task_behavior:
-      mets = self.expl_behavior.report(data)
-      report.update({f'expl_{k}': v for k, v in mets.items()})
-    return report
+      """
+      生成环境报告。
+      根据输入的数据，预处理后生成一个综合报告，该报告包含了世界模型、任务行为和探索行为的度量。
+      参数:
+      - data: 输入数据，用于生成报告。
+      返回值:
+      - report: 一个字典，包含了所有度量的综合报告。
+      """
+      # 如果配置了JAX的JIT编译，则打印追踪报告函数的消息
+      self.config.jax.jit and print('Tracing report function.')
+
+      # 对输入数据进行预处理
+      data = self.preprocess(data)
+
+      # 初始化报告字典
+      report = {}
+
+      # 更新报告字典，添加世界模型的度量
+      report.update(self.wm.report(data))
+
+      # 获取任务行为的度量，并以'task_'为前缀添加到报告中
+      mets = self.task_behavior.report(data)
+      report.update({f'task_{k}': v for k, v in mets.items()})
+
+      # 如果探索行为和任务行为不同，则获取探索行为的度量，并以'expl_'为前缀添加到报告中
+      if self.expl_behavior is not self.task_behavior:
+        mets = self.expl_behavior.report(data)
+        report.update({f'expl_{k}': v for k, v in mets.items()})
+
+      # 返回综合报告
+      return report
 
   def report_eval(self, data):
     self.config.jax.jit and print('Tracing report function.')
@@ -206,25 +255,48 @@ class Agent(nj.Module):
 class WorldModel(nj.Module):
 
   def __init__(self, obs_space, act_space, config):
-    self.obs_space = obs_space
-    self.act_space = act_space['action']
-    self.config = config
-    shapes = {k: tuple(v.shape) for k, v in obs_space.items()}
-    shapes = {k: v for k, v in shapes.items() if not k.startswith('log_')}
-    self.encoder = nets.MultiEncoder(shapes, **config.encoder, name='enc')
-    self.rssm = nets.RSSM(**config.rssm, name='rssm')
-    self.heads = {
-        'decoder': nets.MultiDecoder(shapes, **config.decoder, name='dec'),
-        'reward': nets.MLP((), **config.reward_head, name='rew'),
-        'cont': nets.MLP((), **config.cont_head, name='cont')}
-    if self.config.use_cost:
-      self.heads['cost'] = nets.MLP((), **config.cost_head, name='cost')
-    self.opt = jaxutils.Optimizer(name='model_opt', **config.model_opt)
-    scales = self.config.loss_scales.copy()
-    image, vector = scales.pop('image'), scales.pop('vector')
-    scales.update({k: image for k in self.heads['decoder'].cnn_shapes})
-    scales.update({k: vector for k in self.heads['decoder'].mlp_shapes})
-    self.scales = scales
+      """
+      初始化模型。
+
+      参数:
+      obs_space: 观测空间的字典，包含了不同类型的观测数据及其形状。
+      act_space: 动作空间的字典，包含了动作数据及其形状。
+      config: 配置参数的字典，包含了模型的各种超参数和设置。
+      """
+      # 存储观测空间、动作空间和配置参数
+      self.obs_space = obs_space
+      self.act_space = act_space['action']
+      self.config = config
+
+      # 计算观测空间中各部分的形状，忽略日志相关的观测
+      shapes = {k: tuple(v.shape) for k, v in obs_space.items()}
+      shapes = {k: v for k, v in shapes.items() if not k.startswith('log_')}
+
+      # 初始化编码器，用于将观测数据编码为模型可以处理的表示
+      self.encoder = nets.MultiEncoder(shapes, **config.encoder, name='enc')
+
+      # 初始化RSSM（递归状态空间模型），用于建模环境的动态特性
+      self.rssm = nets.RSSM(**config.rssm, name='rssm')
+
+      # 初始化多个预测头：解码器、奖励预测、连续性预测
+      self.heads = {
+          'decoder': nets.MultiDecoder(shapes, **config.decoder, name='dec'),
+          'reward': nets.MLP((), **config.reward_head, name='rew'),
+          'cont': nets.MLP((), **config.cont_head, name='cont')}
+
+      # 如果配置中包含使用成本，则添加成本预测头
+      if self.config.use_cost:
+        self.heads['cost'] = nets.MLP((), **config.cost_head, name='cost')
+
+      # 初始化优化器，用于模型参数的更新
+      self.opt = jaxutils.Optimizer(name='model_opt', **config.model_opt)
+
+      # 处理损失函数的权重，区分图像和向量数据
+      scales = self.config.loss_scales.copy()
+      image, vector = scales.pop('image'), scales.pop('vector')
+      scales.update({k: image for k in self.heads['decoder'].cnn_shapes})
+      scales.update({k: vector for k in self.heads['decoder'].mlp_shapes})
+      self.scales = scales
 
   def initial(self, batch_size):
     prev_latent = self.rssm.initial(batch_size)
@@ -232,46 +304,90 @@ class WorldModel(nj.Module):
     return prev_latent, prev_action
 
   def train(self, data, state):
-    modules = [self.encoder, self.rssm, *self.heads.values()]
-    mets, (state, outs, metrics) = self.opt(
-        modules, self.loss, data, state, has_aux=True)
-    metrics.update(mets)
-    return state, outs, metrics
+      """
+      训练模型的函数。
 
+      参数:
+      - data: 训练数据。
+      - state: 模型的初始状态。
+
+      返回:
+      - state: 更新后的模型状态。
+      - outs: 模型的输出。
+      - metrics: 训练过程中的度量指标。
+      """
+      print("\n***世界模型模型训练***\n")
+      # 初始化模块列表，包括编码器、RSSM模型和所有头部网络
+      modules = [self.encoder, self.rssm, *self.heads.values()]
+
+      # 使用优化器对模块进行训练，同时计算损失和度量指标
+      mets, (state, outs, metrics) = self.opt(
+          modules, self.loss, data, state, has_aux=True)
+
+      # 更新度量指标，将优化过程中的度量指标添加到metrics中
+      metrics.update(mets)
+
+      # 返回更新后的状态、模型输出和度量指标
+      return state, outs, metrics
+
+  # 计算模型损失
   def loss(self, data, state):
+    # 使用编码器对数据进行嵌入
     embed = self.encoder(data)
+    # 解包前一个状态
     prev_latent, prev_action = state
+    # 准备先前的动作序列
     prev_actions = jnp.concatenate([
         prev_action[:, None], data['action'][:, :-1]], 1)
+    # 使用RSSM观察模型处理嵌入和动作，得到后验和先验分布
     post, prior = self.rssm.observe(
         embed, prev_actions, data['is_first'], prev_latent)
+    # 初始化分布字典
     dists = {}
+    # 构建特征集合，包括后验分布和嵌入
     feats = {**post, 'embed': embed}
+    # 遍历所有头部，计算各个任务的分布
     for name, head in self.heads.items():
       out = head(feats if name in self.config.grad_heads else sg(feats))
       out = out if isinstance(out, dict) else {name: out}
       dists.update(out)
+    # 初始化损失字典
     losses = {}
+    # 计算动态损失和表示损失
     losses['dyn'] = self.rssm.dyn_loss(post, prior, **self.config.dyn_loss)
     losses['rep'] = self.rssm.rep_loss(post, prior, **self.config.rep_loss)
+    # 遍历所有分布，计算各项损失
     for key, dist in dists.items():
       if key == 'cost':
+        # 对于成本分布，使用条件损失
         condition = jnp.greater_equal(data['cost'], 1.0)
         loss = -dist.log_prob(data['cost'].astype(jnp.float32))
         loss = jnp.where(condition, self.config.cost_weight * loss, loss)
       else:
+        # 对于其他分布，直接计算负对数概率作为损失
         loss = -dist.log_prob(data[key].astype(jnp.float32))
+      # 确保损失形状正确
       assert loss.shape == embed.shape[:2], (key, loss.shape)
+      # 更新损失字典
       losses[key] = loss
+    # 对所有损失进行缩放
     scaled = {k: v * self.scales[k] for k, v in losses.items()}
+    # 计算总模型损失
     model_loss = sum(scaled.values())
+    # 准备输出字典
     out = {'embed':  embed, 'post': post, 'prior': prior}
     out.update({f'{k}_loss': v for k, v in losses.items()})
+    # 提取最后一个时间步的潜在状态和动作
     last_latent = {k: v[:, -1] for k, v in post.items()}
     last_action = data['action'][:, -1]
+    # 更新状态
     state = last_latent, last_action
+    # 计算并收集评估指标
     metrics = self._metrics(data, dists, post, prior, losses, model_loss)
+    print("\n***世界模型loss获取***\n")
+    # 返回平均模型损失、新状态、输出字典和评估指标
     return model_loss.mean(), (state, out, metrics)
+
 
   def imagine(self, policy, start, horizon, use_planner=False):
     first_cont = (1.0 - start['is_terminal']).astype(jnp.float32)
@@ -344,6 +460,7 @@ class WorldModel(nj.Module):
     return report
 
   def cost_from_recon(self, recon):
+    print("世界模型--重建模型--cost")
     # jax format
     hazards_size = 0.25
     batch_size = recon.shape[0] * recon.shape[1]
@@ -365,60 +482,109 @@ class WorldModel(nj.Module):
 
 
   def _metrics(self, data, dists, post, prior, losses, model_loss):
-    entropy = lambda feat: self.rssm.get_dist(feat).entropy()
-    metrics = {}
-    metrics.update(jaxutils.tensorstats(entropy(prior), 'prior_ent'))
-    metrics.update(jaxutils.tensorstats(entropy(post), 'post_ent'))
-    metrics.update({f'{k}_loss_mean': v.mean() for k, v in losses.items()})
-    metrics.update({f'{k}_loss_std': v.std() for k, v in losses.items()})
-    metrics['model_loss_mean'] = model_loss.mean()
-    metrics['model_loss_std'] = model_loss.std()
-    metrics['reward_max_data'] = jnp.abs(data['reward']).max()
-    metrics['reward_max_pred'] = jnp.abs(dists['reward'].mean()).max()
-    if 'reward' in dists and not self.config.jax.debug_nans:
-      stats = jaxutils.balance_stats(dists['reward'], data['reward'], 0.1)
-      metrics.update({f'reward_{k}': v for k, v in stats.items()})
-    if 'cont' in dists and not self.config.jax.debug_nans:
-      stats = jaxutils.balance_stats(dists['cont'], data['cont'], 0.5)
-      metrics.update({f'cont_{k}': v for k, v in stats.items()})
-    if 'cost' in data.keys():
-      metrics['cost_max_data'] = jnp.abs(data['cost']).max()
-    if 'cost' in dists.keys():
-      metrics['cost_max_pred'] = jnp.abs(dists['cost'].mean()).max()
-    if 'cost' in dists and 'cost' in data.keys() and not self.config.jax.debug_nans:
-      stats = jaxutils.balance_stats(dists['cost'], data['cost'], 0.1)
-      metrics.update({f'cost_{k}': v for k, v in stats.items()})
-    return metrics
+      """
+      计算并汇总各种性能指标。
+
+      参数:
+      - data: 真实数据集，包含实际观测值和其他相关信息。
+      - dists: 模型预测的分布，用于计算预测值和实际值之间的差异。
+      - post: 后验分布，基于观测数据得到的特征分布。
+      - prior: 先验分布，未考虑当前观测数据时的特征分布。
+      - losses: 损失字典，包含各种损失项。
+      - model_loss: 模型损失，用于评估模型的整体性能。
+
+      返回:
+      - metrics: 性能指标字典，包含各种计算得到的统计量。
+      """
+
+      # 定义熵计算函数，用于后续计算先验和后验的熵。
+      entropy = lambda feat: self.rssm.get_dist(feat).entropy()
+      metrics = {}
+
+      # 计算并记录先验和后验分布的熵的统计信息。
+      metrics.update(jaxutils.tensorstats(entropy(prior), 'prior_ent'))
+      metrics.update(jaxutils.tensorstats(entropy(post), 'post_ent'))
+
+      # 计算并记录各项损失的平均值和标准差。
+      metrics.update({f'{k}_loss_mean': v.mean() for k, v in losses.items()})
+      metrics.update({f'{k}_loss_std': v.std() for k, v in losses.items()})
+
+      # 计算并记录模型损失的平均值和标准差。
+      metrics['model_loss_mean'] = model_loss.mean()
+      metrics['model_loss_std'] = model_loss.std()
+
+      # 计算并记录奖励的预测和实际值的最大绝对值。
+      metrics['reward_max_data'] = jnp.abs(data['reward']).max()
+      metrics['reward_max_pred'] = jnp.abs(dists['reward'].mean()).max()
+
+      # 如果存在奖励预测，且不处于调试模式下，计算并记录奖励的平衡统计信息。
+      if 'reward' in dists and not self.config.jax.debug_nans:
+        stats = jaxutils.balance_stats(dists['reward'], data['reward'], 0.1)
+        metrics.update({f'reward_{k}': v for k, v in stats.items()})
+
+      # 如果存在继续（continuation）预测，且不处于调试模式下，计算并记录继续的平衡统计信息。
+      if 'cont' in dists and not self.config.jax.debug_nans:
+        stats = jaxutils.balance_stats(dists['cont'], data['cont'], 0.5)
+        metrics.update({f'cont_{k}': v for k, v in stats.items()})
+
+      # 如果数据集中包含成本信息，计算并记录成本的预测和实际值的最大绝对值。
+      if 'cost' in data.keys():
+        metrics['cost_max_data'] = jnp.abs(data['cost']).max()
+      if 'cost' in dists.keys():
+        metrics['cost_max_pred'] = jnp.abs(dists['cost'].mean()).max()
+
+      # 如果存在成本预测且数据集中包含成本信息，且不处于调试模式下，计算并记录成本的平衡统计信息。
+      if 'cost' in dists and 'cost' in data.keys() and not self.config.jax.debug_nans:
+        stats = jaxutils.balance_stats(dists['cost'], data['cost'], 0.1)
+        metrics.update({f'cost_{k}': v for k, v in stats.items()})
+
+      return metrics
 
 class ImagSafeActorCritic(nj.Module):
   def __init__(self, critics, cost_critics, scales, cost_scales, act_space, config):
-    critics = {k: v for k, v in critics.items() if scales[k]}
-    cost_critics = {k: v for k, v in cost_critics.items() if scales[k]}
+      # 初始化函数，用于设置策略网络的批评家、成本批评家、比例、成本比例、动作空间和配置参数
+      # 过滤批评家和成本批评家，仅保留那些在scales中有对应非零比例的项
+      critics = {k: v for k, v in critics.items() if scales[k]}
+      cost_critics = {k: v for k, v in cost_critics.items() if scales[k]}
 
-    for key, scale in scales.items():
-      assert not scale or key in critics, key
-    for key, cost_scale in cost_scales.items():
-      assert not cost_scale or key in cost_critics, key
-    self.critics = {k: v for k, v in critics.items() if scales[k]}
-    self.cost_critics = {k: v for k, v in cost_critics.items() if cost_scales[k]}
+      # 确保每个非零比例的键在批评家和成本批评家中都存在
+      for key, scale in scales.items():
+        assert not scale or key in critics, key
+      for key, cost_scale in cost_scales.items():
+        assert not cost_scale or key in cost_critics, key
 
-    self.scales = scales
-    self.cost_scales = cost_scales
-    self.act_space = act_space
-    self.config = config
-    self.lagrange = jaxutils.Lagrange(self.config.lagrange_multiplier_init, self.config.penalty_multiplier_init, self.config.cost_limit, name=f'lagrange')
-    disc = act_space.discrete
-    self.grad = config.actor_grad_disc if disc else config.actor_grad_cont
-    self.actor = nets.MLP(
-        name='actor', dims='deter', shape=act_space.shape, **config.actor,
-        dist=config.actor_dist_disc if disc else config.actor_dist_cont)
-    self.retnorms = {
-        k: jaxutils.Moments(**config.retnorm, name=f'retnorm_{k}')
-        for k in critics}
-    self.costnorms = {
-        k: jaxutils.Moments(**config.costnorm, name=f'costnorm_{k}')
-        for k in cost_critics}
-    self.opt = jaxutils.Optimizer(name='actor_opt', **config.actor_opt)
+      # 初始化实例变量，仅包含那些有非零比例的批评家和成本批评家
+      self.critics = {k: v for k, v in critics.items() if scales[k]}
+      self.cost_critics = {k: v for k, v in cost_critics.items() if cost_scales[k]}
+
+      # 初始化比例和成本比例以及其他配置参数
+      self.scales = scales
+      self.cost_scales = cost_scales
+      self.act_space = act_space
+      self.config = config
+
+      # 初始化拉格朗日乘子对象，用于处理约束优化问题
+      self.lagrange = jaxutils.Lagrange(self.config.lagrange_multiplier_init, self.config.penalty_multiplier_init, self.config.cost_limit, name=f'lagrange')
+
+      # 根据动作空间的离散性选择合适的梯度计算方法
+      disc = act_space.discrete
+      self.grad = config.actor_grad_disc if disc else config.actor_grad_cont
+
+      # 初始化动作网络（策略网络），根据配置参数和动作空间的形状
+      self.actor = nets.MLP(
+          name='actor', dims='deter', shape=act_space.shape, **config.actor,
+          dist=config.actor_dist_disc if disc else config.actor_dist_cont)
+
+      # 初始化回报和成本的归一化对象，用于稳定学习过程
+      self.retnorms = {
+          k: jaxutils.Moments(**config.retnorm, name=f'retnorm_{k}')
+          for k in critics}
+      self.costnorms = {
+          k: jaxutils.Moments(**config.costnorm, name=f'costnorm_{k}')
+          for k in cost_critics}
+      print("想象SafeActorCritic--优化器")
+      # 初始化策略网络的优化器
+      self.opt = jaxutils.Optimizer(name='actor_opt', **config.actor_opt)
 
   def initial(self, batch_size):
     return {}
@@ -530,6 +696,7 @@ class ImagActorCritic(nj.Module):
     self.retnorms = {
         k: jaxutils.Moments(**config.retnorm, name=f'retnorm_{k}')
         for k in critics}
+    print("ImagActorCritic--优化器")
     self.opt = jaxutils.Optimizer(name='actor_opt', **config.actor_opt)
 
   def initial(self, batch_size):
@@ -539,17 +706,53 @@ class ImagActorCritic(nj.Module):
     return {'action': self.actor(state)}, carry
 
   def train(self, imagine, start, context):
-    def loss(start):
-      policy = lambda s: self.actor(sg(s)).sample(seed=nj.rng())
-      traj = imagine(policy, start, self.config.imag_horizon)
-      loss, metrics = self.loss(traj)
-      return loss, (traj, metrics)
-    mets, (traj, metrics) = self.opt(self.actor, loss, start, has_aux=True)
-    metrics.update(mets)
-    for key, critic in self.critics.items():
-      mets = critic.train(traj, self.actor)
-      metrics.update({f'{key}_critic_{k}': v for k, v in mets.items()})
-    return traj, metrics
+      """
+      训练函数，用于更新策略和价值函数。
+
+      参数:
+      - imagine: 一个函数，用于在想象中生成轨迹。
+      - start: 起始状态。
+      - context: 上下文信息，未在本段代码中直接使用，可能用于其他地方。
+
+      返回:
+      - traj: 生成的轨迹。
+      - metrics: 训练过程中的度量指标。
+      """
+
+      # 定义一个内部函数来计算损失
+      def loss(start):
+        """
+        计算损失函数。
+
+        参数:
+        - start: 起始状态。
+
+        返回:
+        - loss: 计算得到的损失值。
+        - (traj, metrics): 辅助返回值，包含轨迹和度量指标。
+        """
+        # 定义一个策略，使用actor网络生成动作
+        policy = lambda s: self.actor(sg(s)).sample(seed=nj.rng())
+        # 使用想象函数生成轨迹
+        traj = imagine(policy, start, self.config.imag_horizon)
+        # 计算损失和度量指标
+        loss, metrics = self.loss(traj)
+        return loss, (traj, metrics)
+
+      # 使用优化器计算损失并获取辅助返回值
+      mets, (traj, metrics) = self.opt(self.actor, loss, start, has_aux=True)
+      # 更新度量指标
+      metrics.update(mets)
+
+      # 对每个批评家网络进行训练
+      for key, critic in self.critics.items():
+        # 训练批评家网络并获取度量指标
+        mets = critic.train(traj, self.actor)
+        # 更新总的度量指标
+        metrics.update({f'{key}_critic_{k}': v for k, v in mets.items()})
+
+      # 返回生成的轨迹和度量指标
+      return traj, metrics
 
 
   def loss(self, traj):

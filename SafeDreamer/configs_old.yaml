@@ -7,7 +7,7 @@ defaults:
   seed: 0
   method: name
   task: dummy_disc
-  logdir: ./logdir_osrp_lyz_0222_costlimit30/
+  logdir: ./logdir_osrp_lyz_0216_costlimit30/
   replay: uniform
   replay_size: 1e6
   replay_online: False
@@ -38,16 +38,15 @@ defaults:
     eval_eps: 1
     eval_samples: 1
     train_ratio: 32.0
-    train_fill: 4096
-    eval_fill: 4096
-#    train_fill: 0
-#    eval_fill: 0
+#    train_fill: 16384
+#    eval_fill: 16384
+    train_fill: 0
+    eval_fill: 0
     log_zeros: False
     log_keys_video: [image, image2]
     log_keys_sum: '^$'
     log_keys_mean: 'log_entropy|log_plan_action_mean|log_plan_action_std|log_plan_num_safe_traj|log_plan_ret|log_plan_cost|log_plan_penalty|log_plan_lagrange_multiplier|log_plan_penalty_multiplier|log_lagrange_penalty|log_lagrange_p|log_lagrange_i|log_lagrange_d'
     log_keys_max: 'log_entropy|log_plan_action_mean|log_plan_action_std|log_plan_num_safe_traj|log_plan_ret|log_plan_cost|log_plan_penalty|log_plan_lagrange_multiplier|log_plan_penalty_multiplier|log_lagrange_penalty|log_lagrange_p|log_lagrange_i|log_lagrange_d'
-#    from_checkpoint: '/home/lumen/@Code/SafeDreamer/SafeDreamer/logdir_osrp_lyz_0222_costlimit30/20250226-140808_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/checkpoint.ckpt'
     from_checkpoint: ''
     sync_every: 10
     # actor_addr: 'tcp://127.0.0.1:5551'
@@ -70,7 +69,7 @@ defaults:
   # Agent
   task_behavior: Greedy
   expl_behavior: None
-  batch_size: 32
+  batch_size: 16
   batch_length: 64
   data_loaders: 8
 
@@ -88,7 +87,8 @@ defaults:
   model_opt: {opt: adam, lr: 1e-4, eps: 1e-8, clip: 1000.0, wd: 0.0, warmup: 0, lateclip: 0.0}
 
   # Actor Critic
-  actor: {layers: 5, units: 1024, act: silu, norm: layer, minstd: 0.1, maxstd: 1.0, outscale: 1.0, outnorm: False, unimix: 0.01, inputs: [deter, stoch], winit: normal, fan: avg, symlog_inputs: False}
+#  actor: {layers: 5, units: 1024, act: silu, norm: layer, minstd: 0.1, maxstd: 1.0, outscale: 1.0, outnorm: False, unimix: 0.01, inputs: [deter, stoch], winit: normal, fan: avg, symlog_inputs: False}
+  actor: {layers: 5, units: 1024, act: silu, norm: layer, minstd: 0.1, maxstd: 2.0, outscale: 1.0, outnorm: False, unimix: 0.05, inputs: [deter, stoch], winit: normal, fan: avg, symlog_inputs: False}
   critic: {layers: 5, units: 1024, act: silu, norm: layer, dist: symlog_disc, outscale: 0.0, outnorm: False, inputs: [deter, stoch], winit: normal, fan: avg, bins: 255, symlog_inputs: False}
   actor_opt: {opt: adam, lr: 3e-5, eps: 1e-5, clip: 100.0, wd: 0.0, warmup: 0, lateclip: 0.0}
   critic_opt: {opt: adam, lr: 3e-5, eps: 1e-5, clip: 100.0, wd: 0.0, warmup: 0, lateclip: 0.0}
@@ -115,8 +115,7 @@ defaults:
   slow_critic_fraction: 0.02
   retnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
   costnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
-#  planner: {horizon: 15, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
-  planner: {horizon: 5, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
+  planner: {horizon: 15, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
 
   pid: {kp: 0.0, ki: 0.1, kd: 0.0, init_penalty: 0.0, d_delay: 10, delta_p_ema_alpha: 0.95, delta_d_ema_alpha: 0.95, sum_norm: True, diff_norm: False, penalty_max: 100.0, lagrangian_multiplier_init: 0.001,  use_cost_decay: False, init_cost_limit: 20.0, decay_time_step: 20000, decay_num: 7, decay_limit_step: 2.0}
   actent: 3e-4
@@ -141,8 +140,8 @@ bsrp_lag:
   pessimistic: True
   run:
     script: train_eval
-    steps: 1e5 #7
-    eval_every: 1e2 #4
+    steps: 1e7
+    eval_every: 1e4
     eval_initial: False
     eval_eps: 1
   rssm.deter: 512
@@ -290,7 +289,6 @@ osrp_vector:
 
 osrp_vector_highway-intersection:
   task_behavior: Greedy
-#  expl_behavior: CCEPlanner
   expl_behavior: PIDPlanner
   use_cost: True
   cost_weight: 1.0
@@ -327,7 +325,7 @@ osrp_vector_highway-fast:
   expl_behavior: CCEPlanner
   use_cost: True
   cost_weight: 1.0
-  cost_limit: 40
+  cost_limit: 2
   # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
 #  task: safetygymcoor_SafetyPointGoal-v0 safe-intersection-v0
   task: New-gym_safe-highway-fast-v0
@@ -340,8 +338,8 @@ osrp_vector_highway-fast:
   run.train_ratio: 512
   run:
     script: train_eval
-    steps: 4e5 #7
-    eval_every: 1e3 #4
+    steps: 1e7 #7
+    eval_every: 1e4 #4
     eval_initial: False
     eval_eps: 1
   rssm.deter: 256
