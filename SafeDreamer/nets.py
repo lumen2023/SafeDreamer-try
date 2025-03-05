@@ -402,43 +402,81 @@ class ImageDecoderResnet(nj.Module):
 
 
 class MLP(nj.Module):
+    """
+    多层感知器（MLP）类，用于创建和初始化一个MLP模型。
+    MLP模型可以处理不同形状的输入，并根据配置的层数和单元数进行前向传播。
+    """
 
-  def __init__(
-      self, shape, layers, units, inputs=['tensor'], dims=None,
-      symlog_inputs=False, **kw):
-    assert shape is None or isinstance(shape, (int, tuple, dict)), shape
-    if isinstance(shape, int):
-      shape = (shape,)
-    self._shape = shape
-    self._layers = layers
-    self._units = units
-    self._inputs = Input(inputs, dims=dims)
-    self._symlog_inputs = symlog_inputs
-    distkeys = (
-        'dist', 'outscale', 'minstd', 'maxstd', 'outnorm', 'unimix', 'bins')
-    self._dense = {k: v for k, v in kw.items() if k not in distkeys}
-    self._dist = {k: v for k, v in kw.items() if k in distkeys}
+    def __init__(
+            self, shape, layers, units, inputs=['tensor'], dims=None,
+            symlog_inputs=False, **kw):
+        """
+        初始化MLP模型。
 
-  def __call__(self, inputs):
-    feat = self._inputs(inputs)
-    if self._symlog_inputs:
-      feat = jaxutils.symlog(feat)
-    x = jaxutils.cast_to_compute(feat)
-    x = x.reshape([-1, x.shape[-1]])
-    for i in range(self._layers):
-      x = self.get(f'h{i}', Linear, self._units, **self._dense)(x)
-    x = x.reshape(feat.shape[:-1] + (x.shape[-1],))
-    if self._shape is None:
-      return x
-    elif isinstance(self._shape, tuple):
-      return self._out('out', self._shape, x)
-    elif isinstance(self._shape, dict):
-      return {k: self._out(k, v, x) for k, v in self._shape.items()}
-    else:
-      raise ValueError(self._shape)
+        参数:
+        - shape: 输出的形状，可以是整数、元组或字典，表示输出的结构。
+        - layers: MLP中的层数。
+        - units: 每层中的单元数。
+        - inputs: 输入的标识，用于Input对象。
+        - dims: 输入的维度信息，可选。
+        - symlog_inputs: 是否对输入进行对称对数变换。
+        - kw: 其他关键字参数，用于配置dense层和分布参数。
+        """
+        # 校验shape参数的类型
+        assert shape is None or isinstance(shape, (int, tuple, dict)), shape
+        if isinstance(shape, int):
+            shape = (shape,)
+        self._shape = shape
+        self._layers = layers
+        self._units = units
+        self._inputs = Input(inputs, dims=dims)
+        self._symlog_inputs = symlog_inputs
+        distkeys = (
+            'dist', 'outscale', 'minstd', 'maxstd', 'outnorm', 'unimix', 'bins')
+        self._dense = {k: v for k, v in kw.items() if k not in distkeys}
+        self._dist = {k: v for k, v in kw.items() if k in distkeys}
 
-  def _out(self, name, shape, x):
-    return self.get(f'dist_{name}', Dist, shape, **self._dist)(x)
+    def __call__(self, inputs):
+        """
+        MLP模型的前向传播方法。
+
+        参数:
+        - inputs: 输入数据。
+
+        返回:
+        根据self._shape的不同类型，返回不同的输出结构。
+        """
+        feat = self._inputs(inputs)
+        if self._symlog_inputs:
+            feat = jaxutils.symlog(feat)
+        x = jaxutils.cast_to_compute(feat)
+        x = x.reshape([-1, x.shape[-1]])
+        for i in range(self._layers):
+            x = self.get(f'h{i}', Linear, self._units, **self._dense)(x)
+        x = x.reshape(feat.shape[:-1] + (x.shape[-1],))
+        if self._shape is None:
+            return x
+        elif isinstance(self._shape, tuple):
+            return self._out('out', self._shape, x)
+        elif isinstance(self._shape, dict):
+            return {k: self._out(k, v, x) for k, v in self._shape.items()}
+        else:
+            raise ValueError(self._shape)
+
+    def _out(self, name, shape, x):
+        """
+        输出层的处理方法。
+
+        参数:
+        - name: 输出的名称。
+        - shape: 输出的形状。
+        - x: 输入数据。
+
+        返回:
+        根据指定形状和分布参数处理后的输出。
+        """
+        return self.get(f'dist_{name}', Dist, shape, **self._dist)(x)
+
 
 
 class Dist(nj.Module):

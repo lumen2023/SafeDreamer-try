@@ -274,8 +274,10 @@ class WandBOutput:
     import wandb
     wandb.init(
         project="safedreamer-highway-test",
-        name=logdir.name,
-        id=logdir.name,
+        name="111",
+        id="222",
+        # name=logdir.name,
+        # id=logdir.name,
         # sync_tensorboard=True,,
         config=dict(config),
     )

@@ -8,11 +8,12 @@
       <env name="PYTHONUNBUFFERED" value="1" />
     </envs>
     <option name="SDK_HOME" value="" />
-    <option name="SDK_NAME" value="SafeDreamer" />
+    <option name="SDK_NAME" value="Remote Python 3.8.10 (sftp://root@connect.nmb1.seetacloud.com:24367/root/miniconda3/bin/python3)" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/SafeDreamer" />
     <option name="IS_MODULE_SDK" value="false" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/SafeDreamer/train.py" />
     <option name="PARAMETERS" value="--configs osrp_vector_highway-fast --method osrp_vector_highway-fast --jax.logical_gpus 0" />
     <option name="SHOW_COMMAND_LINE" value="false" />

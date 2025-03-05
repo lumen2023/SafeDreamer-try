@@ -37,7 +37,7 @@ def train_eval(
   # 初始化日志目录并创建目录
   logdir = embodied.Path(args.logdir)
   logdir.mkdirs()
-  # print('Logdir', logdir)
+  print('Logdir', logdir)
 
   # 初始化条件判断器
   should_expl = embodied.when.Until(args.expl_until)  # 探索阶段
@@ -233,17 +233,19 @@ def train_eval(
   # 在每个episode结束时调用回调函数，记录评估模式下的episode信息。
   driver_eval.on_episode(lambda ep, worker: per_episode(ep, mode='eval'))
 
+#  1 创建一个随机智能体，用于在预填充阶段生成随机动作，训练世界模型
+
   # 创建一个随机智能体，用于在预填充阶段生成随机动作。
   random_agent = embodied.RandomAgent(train_env.act_space)
   print('预填充--训练--数据集。')
   # 使用随机策略与环境交互，直到训练回放缓冲区达到指定大小。
   while len(train_replay) < max(args.batch_steps, args.train_fill):
-  # while len(train_replay) < 64:
+  # while len(train_replay) < 32:
     driver_train(random_agent.policy, steps=100, lag=lag.lagrange_penalty, lag_p=lag.delta_p, lag_i=lag.pid_i, lag_d=lag.pid_d)
   print('预填充--评估--数据集。')
   # 使用随机策略与环境交互，直到评估回放缓冲区达到指定大小。
   while len(eval_replay) < max(args.batch_steps, args.eval_fill):
-  # while len(eval_replay) < 64:
+  # while len(eval_replay) < 32:
     driver_eval(random_agent.policy, steps=100, lag=lag.lagrange_penalty, lag_p=lag.delta_p, lag_i=lag.pid_i, lag_d=lag.pid_d)
 
   # 将当前性能指标结果添加到日志中。

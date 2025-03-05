@@ -118,7 +118,7 @@ class Agent(nj.Module):
         outs['log_entropy'] = outs['action'].entropy()
         outs['action'] = outs['action'].sample(seed=nj.rng())
     elif mode == 'train':
-      if self.config.expl_behavior in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
+      if self.config.task_behavior in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
         outs = expl_outs
         outs['log_entropy'] = jnp.zeros(outs['action'].shape[:1])
       else:
@@ -634,7 +634,7 @@ class ImagSafeActorCritic(nj.Module):
     metrics.update(self._metrics(traj, policy, logpi, ent, adv))
     loss = loss.mean()
 
-    if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
+    if self.config.task_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
 
       cost_advs = []
       total = sum(self.cost_scales[k] for k in self.cost_critics)

@@ -49,21 +49,42 @@ class JAXAgent(embodied.Agent):
     self.sync()
 
   def policy(self, obs, state=None, mode='train'):
-    obs = obs.copy()
-    obs = self._convert_inps(obs, self.policy_devices)
-    rng = self._next_rngs(self.policy_devices)
-    varibs = self.varibs if self.single_device else self.policy_varibs
-    if state is None:
-      state, _ = self._init_policy(varibs, rng, obs['is_first'])
-    else:
-      state = tree_map(
-          np.asarray, state, is_leaf=lambda x: isinstance(x, list))
-      state = self._convert_inps(state, self.policy_devices)
-    (outs, state), _ = self._policy(varibs, rng, obs, state, mode=mode)
-    outs = self._convert_outs(outs, self.policy_devices)
-    # TODO: Consider keeping policy states in accelerator memory.
-    state = self._convert_outs(state, self.policy_devices)
-    return outs, state
+      """
+      执行策略函数，根据观察值和状态生成动作输出。
+
+      参数:
+      - obs: 观察值，表示环境的当前状态。
+      - state: 策略的内部状态，如果为None，则会初始化一个新的状态。
+      - mode: 模式，可以是'train'（训练模式）或其它值（通常表示评估模式）。
+
+      返回:
+      - outs: 策略的输出，通常是动作或动作的概率分布。
+      - state: 更新后的策略内部状态。
+      """
+      # 复制观察值以避免直接修改输入数据
+      obs = obs.copy()
+      # 将观察值转换为适用于策略设备的数据结构
+      obs = self._convert_inps(obs, self.policy_devices)
+      # 生成随机数种子，用于策略计算中的随机性
+      rng = self._next_rngs(self.policy_devices)
+      # 根据是否使用单个设备来选择变量
+      varibs = self.varibs if self.single_device else self.policy_varibs
+      # 初始化策略状态（如果未提供状态）
+      if state is None:
+        state, _ = self._init_policy(varibs, rng, obs['is_first'])
+      else:
+        # 如果提供了状态，确保其为适当的数组形式并转换为适用于策略设备的数据结构
+        state = tree_map(
+            np.asarray, state, is_leaf=lambda x: isinstance(x, list))
+        state = self._convert_inps(state, self.policy_devices)
+      # 使用当前策略生成输出和更新状态
+      (outs, state), _ = self._policy(varibs, rng, obs, state, mode=mode)
+      # 将输出转换为适用于策略设备的数据结构
+      outs = self._convert_outs(outs, self.policy_devices)
+      # TODO: Consider keeping policy states in accelerator memory.
+      # 将状态转换为适用于策略设备的数据结构
+      state = self._convert_outs(state, self.policy_devices)
+      return outs, state
 
   def train(self, data, state=None):
     rng = self._next_rngs(self.train_devices)

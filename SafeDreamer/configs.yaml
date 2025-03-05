@@ -30,7 +30,7 @@ defaults:
   run:
     script: train
     steps: 1e10
-    expl_until: 0
+    expl_until: 0  # wait test
     log_every: 300
     save_every: 900
     eval_every: 1e6
@@ -52,7 +52,8 @@ defaults:
     sync_every: 10
     # actor_addr: 'tcp://127.0.0.1:5551'
     actor_addr: 'ipc:///tmp/5551'
-    actor_batch: 32
+#    actor_batch: 32
+    actor_batch: 128
 
   envs: {amount: 1, parallel: process, length: 0, reset: True, restart: True, discretize: 0, checks: False}
   wrapper: {length: 0, reset: True, discretize: 0, checks: False}
@@ -70,7 +71,8 @@ defaults:
   # Agent
   task_behavior: Greedy
   expl_behavior: None
-  batch_size: 32
+#  batch_size: 32
+  batch_size: 128
   batch_length: 64
   data_loaders: 8
 
@@ -99,7 +101,8 @@ defaults:
   actor_grad_disc: reinforce
   actor_grad_cont: backprop
   critic_type: vfunction
-  imag_horizon: 15
+#  imag_horizon: 15
+  imag_horizon: 5
   imag_unroll: False
   horizon: 333
   penalty_multiplier_init: 5e-9
@@ -117,6 +120,7 @@ defaults:
   costnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
 #  planner: {horizon: 15, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
   planner: {horizon: 5, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
+#  planner: {horizon: 10, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
 
   pid: {kp: 0.0, ki: 0.1, kd: 0.0, init_penalty: 0.0, d_delay: 10, delta_p_ema_alpha: 0.95, delta_d_ema_alpha: 0.95, sum_norm: True, diff_norm: False, penalty_max: 100.0, lagrangian_multiplier_init: 0.001,  use_cost_decay: False, init_cost_limit: 20.0, decay_time_step: 20000, decay_num: 7, decay_limit_step: 2.0}
   actent: 3e-4
@@ -236,6 +240,7 @@ osrp_lag:
   env.safetygym: {size: [64,64], repeat: 4, render: True, obs_key: 'image', camera_name: 'vision_front_back'}
   run.train_ratio: 512
   planner: {horizon: 15, num_samples: 500, num_elites: 50, mixture_coef: 0.00, init_std: 1.0}
+#  planner: {horizon: 5, num_samples: 500, num_elites: 50, mixture_coef: 0.00, init_std: 1.0}
 
   pid: {kp: 0.1, ki: 0.01, kd: 0.01, init_penalty: 0.0, penalty_max: 0.1, init_cost_limit: 14.0, use_cost_decay: False}
 
@@ -324,11 +329,11 @@ osrp_vector_highway-intersection:
 
 osrp_vector_highway-fast:
   task_behavior: Greedy
-#  expl_behavior: CCEPlanner
-  expl_behavior: CEMPlanner
+  expl_behavior: CCEPlanner
+#  expl_behavior: CEMPlanner
   use_cost: True
   cost_weight: 1.0
-  cost_limit: 40
+  cost_limit: 20
   # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
 #  task: safetygymcoor_SafetyPointGoal-v0 safe-intersection-v0
   task: New-gym_safe-highway-fast-v0
