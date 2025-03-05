@@ -100,14 +100,17 @@ defaults:
   actor_grad_cont: backprop
   critic_type: vfunction
   imag_horizon: 15
+#  imag_horizon: 5
   imag_unroll: False
   horizon: 333
-  penalty_multiplier_init: 5e-9
-  lagrange_multiplier_init: 1e-6
+#  penalty_multiplier_init: 5e-9
+  penalty_multiplier_init: 1e-9
+#  lagrange_multiplier_init: 1e-6
+  lagrange_multiplier_init: 5e-07
   use_cost: True
   pessimistic: False
   cost_weight: 10.0
-  cost_limit: 25.0
+  cost_limit: 10.0
   use_cost_model: True
   return_lambda: 0.95
   critic_slowreg: logprob
@@ -117,6 +120,8 @@ defaults:
   costnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
 #  planner: {horizon: 15, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
   planner: {horizon: 5, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
+#  planner: {horizon: 10, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
+#  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 
   pid: {kp: 0.0, ki: 0.1, kd: 0.0, init_penalty: 0.0, d_delay: 10, delta_p_ema_alpha: 0.95, delta_d_ema_alpha: 0.95, sum_norm: True, diff_norm: False, penalty_max: 100.0, lagrangian_multiplier_init: 0.001,  use_cost_decay: False, init_cost_limit: 20.0, decay_time_step: 20000, decay_num: 7, decay_limit_step: 2.0}
   actent: 3e-4
@@ -128,165 +133,6 @@ defaults:
   disag_target: [stoch]
   disag_models: 8
 
-bsrp_lag:
-  task_behavior: Greedy
-  expl_behavior: None
-  use_cost: True
-  cost_weight: 10.0
-  cost_limit: 2.0
-  task: safetygym_SafetyPointGoal1-v0
-  envs.amount: 1
-  env.safetygym: {repeat: 4,render: True, obs_key: 'image', camera_name: 'vision_front_back'}
-  run.train_ratio: 512
-  pessimistic: True
-  run:
-    script: train_eval
-    steps: 1e5 #7
-    eval_every: 1e2 #4
-    eval_initial: False
-    eval_eps: 1
-  rssm.deter: 512
-  .*\.cnn_depth: 32
-  .*\.layers: 2
-  .*\.units: 512
-  .*\.mlp_units: 1024
-  .*\.mlp_layers: 5
-  rssm: {stoch: 48, classes: 48}
-  encoder: {mlp_keys: '.*', cnn_keys: 'image|image2'}
-  decoder: {mlp_keys: '.*', cnn_keys: 'image|image2'}
-
-bsrp_lag_vector:
-  task_behavior: Greedy
-  expl_behavior: None
-  use_cost: True
-  cost_weight: 10.0
-  cost_limit: 2.0
-#  task: safetygym_SafetyPointGoal1-v0
-  task: New-gym_safe-highway-fast-v0
-  envs.amount: 1
-  env.safetygymcoor: {size: [64,64], repeat: 5, render: True, obs_key: 'observation', camera_name: 'fixedfar'}
-#  env.safetygym: {repeat: 4,render: True, obs_key: 'image', camera_name: 'vision_front_back'}
-  run.train_ratio: 512
-  pessimistic: True
-  run:
-    script: train_eval
-    steps: 1e7
-    eval_every: 1e4
-    eval_initial: False
-    eval_eps: 1
-#  rssm.deter: 512
-#  .*\.cnn_depth: 32
-#  .*\.layers: 2
-#  .*\.units: 512
-#  .*\.mlp_units: 1024
-#  .*\.mlp_layers: 5
-#  rssm: {stoch: 48, classes: 48}
-#  encoder: {mlp_keys: '.*', cnn_keys: 'image|image2'}
-#  decoder: {mlp_keys: '.*', cnn_keys: 'image|image2'}
-  rssm.deter: 256
-  .*\.cnn_depth: 32
-  .*\.layers: 2
-  .*\.units: 256
-  .*\.mlp_units: 256
-  .*\.mlp_layers: 3
-  rssm: {stoch: 16, classes: 16}
-  encoder: {mlp_keys: '.*', cnn_keys: '$^'}
-  decoder: {mlp_keys: '.*', cnn_keys: '$^'}
-
-osrp:
-  task_behavior: Greedy
-  expl_behavior: CCEPlanner
-  use_cost: True
-  cost_weight: 10.0
-  cost_limit: 2.0
-  # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
-  task: safetygym_SafetyPointGoal1-v0
-  envs.amount: 1
-  # vision, track, fixednear, fixedfar, vision_front_back
-  env.safetygym: {size: [64,64], repeat: 5, render: True, obs_key: 'image', camera_name: 'vision_front_back'}
-  #cost_head: {layers: 5, units: 1024, act: silu, norm: layer, dist: binary, outscale: 1.0, outnorm: False, inputs: [deter, stoch], winit: normal, fan: avg}
-  run.train_ratio: 512
-  planner: {horizon: 15, num_samples: 500, num_elites: 50, mixture_coef: 0.00, init_std: 1.0}
-  run:
-    script: train_eval
-    steps: 1e7
-    eval_every: 1e4
-    eval_initial: False
-    eval_eps: 1
-  rssm.deter: 512
-  .*\.cnn_depth: 32
-  .*\.layers: 2
-  .*\.units: 512
-  .*\.mlp_units: 1024
-  .*\.mlp_layers: 5
-  rssm: {stoch: 48, classes: 48}
-  encoder: {mlp_keys: '.*', cnn_keys: 'image|image2'}
-  decoder: {mlp_keys: '.*', cnn_keys: 'image|image2'}
-
-osrp_lag:
-  task_behavior: Greedy
-  expl_behavior: PIDPlanner
-  use_cost: True
-  cost_weight: 10.0
-  cost_limit: 2.0
-  # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
-  task: safetygym_SafetyPointGoal1-v0
-  envs.amount: 1
-  # vision, track, fixednear, fixedfar, vision_front_back
-  env.safetygym: {size: [64,64], repeat: 4, render: True, obs_key: 'image', camera_name: 'vision_front_back'}
-  run.train_ratio: 512
-  planner: {horizon: 15, num_samples: 500, num_elites: 50, mixture_coef: 0.00, init_std: 1.0}
-
-  pid: {kp: 0.1, ki: 0.01, kd: 0.01, init_penalty: 0.0, penalty_max: 0.1, init_cost_limit: 14.0, use_cost_decay: False}
-
-  run:
-    script: train_eval
-    steps: 1e7
-    eval_every: 1e4
-    eval_initial: False
-    eval_eps: 1
-  rssm.deter: 512
-  .*\.cnn_depth: 32
-  .*\.layers: 2
-  .*\.units: 512
-  .*\.mlp_units: 1024
-  .*\.mlp_layers: 5
-  rssm: {stoch: 48, classes: 48}
-  encoder: {mlp_keys: '.*', cnn_keys: 'image|image2'}
-  decoder: {mlp_keys: '.*', cnn_keys: 'image|image2'}
-
-
-osrp_vector:
-  task_behavior: Greedy
-  expl_behavior: CCEPlanner
-  use_cost: False
-  cost_weight: 1.0
-  cost_limit: 0.0
-  # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
-  task: safetygymcoor_SafetyPointGoal1-v0
-#  task: safetygymcoor_safe-highway-fast-v0
-  envs.amount: 1
-  # vision, track, fixednear, fixedfar, vision_front_back
-  env.safetygymcoor: {size: [64,64], repeat: 5, render: True, obs_key: 'observation', camera_name: 'fixedfar'}
-  loss_scales: {vector: 5.0}
-  env.safetygymmujoco: {repeat: 1,render: False, obs_key: 'observation'}
-  run.train_ratio: 512
-  run:
-    script: train_eval
-    steps: 1e7 #7
-    eval_every: 1e4 #4
-    eval_initial: False
-    eval_eps: 1
-  rssm.deter: 256
-  .*\.cnn_depth: 32
-  .*\.layers: 2
-  .*\.units: 256
-  .*\.mlp_units: 256
-  .*\.mlp_layers: 3
-  rssm: {stoch: 16, classes: 16}
-
-  encoder: {mlp_keys: '.*', cnn_keys: '$^'}
-  decoder: {mlp_keys: '.*', cnn_keys: '$^'}
 
 osrp_vector_highway-intersection:
   task_behavior: Greedy
@@ -324,11 +170,11 @@ osrp_vector_highway-intersection:
 
 osrp_vector_highway-fast:
   task_behavior: Greedy
-#  expl_behavior: CCEPlanner
-  expl_behavior: CEMPlanner
+  expl_behavior: CCEPlanner
+#  expl_behavior: CEMPlanner
   use_cost: True
-  cost_weight: 1.0
-  cost_limit: 40
+  cost_weight: 1
+  cost_limit: 10
   # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
 #  task: safetygymcoor_SafetyPointGoal-v0 safe-intersection-v0
   task: New-gym_safe-highway-fast-v0
@@ -356,61 +202,6 @@ osrp_vector_highway-fast:
 
   encoder: {mlp_keys: '.*', cnn_keys: '$^'}
   decoder: {mlp_keys: '.*', cnn_keys: '$^'}
-
-dreamerv3:
-  task_behavior: Greedy
-  expl_behavior: None
-  use_cost: False
-  task: safetygym_SafetyPointGoal0-v0
-  envs.amount: 1
-  # vision, track, fixednear, fixedfar, vision_front_back
-  env.safetygymmujoco: {repeat: 1,render: True, obs_key: 'image'}
-  env.safetygym: {size: [64,64], repeat: 2, render: True, obs_key: 'image', camera_name: 'vision_front_back'}
-  run.train_ratio: 512
-  run:
-    script: train_eval
-    steps: 1e7
-    eval_every: 1e4
-    eval_initial: False
-    eval_eps: 1
-  rssm.deter: 512
-  .*\.cnn_depth: 32
-  .*\.layers: 2
-  .*\.units: 512
-  .*\.mlp_units: 1024
-  .*\.mlp_layers: 5
-  rssm: {stoch: 48, classes: 48}
-
-  encoder: {mlp_keys: '.*', cnn_keys: 'image|image2'}
-  decoder: {mlp_keys: '.*', cnn_keys: 'image|image2'}
-
-dreamerv3_vector:
-  task_behavior: Greedy
-  expl_behavior: None
-  use_cost: False
-  task: safetygymmujoco_SafetHumanoidVelocity-v1
-  # task: safetygymcoor_SafetyPointGoal1-v0
-  envs.amount: 1
-  # vision, track, fixednear, fixedfar, vision_front_back
-  env.safetygymmujoco: {repeat: 1,render: False, obs_key: 'observation'}
-  env.safetygymcoor: {size: [64,64], repeat: 5, render: False, obs_key: 'observation', camera_name: 'fixedfar'}
-  loss_scales: {vector: 5.0}
-  run.train_ratio: 512
-  run:
-    script: train_eval
-    steps: 1e7
-    eval_every: 1e4
-    eval_initial: False
-    eval_eps: 1
-  rssm.deter: 512
-  .*\.cnn_depth: 32
-  .*\.layers: 2
-  .*\.units: 512
-  .*\.mlp_units: 1024
-  .*\.mlp_layers: 5
-  rssm: {stoch: 32, classes: 32}
-  encoder: {mlp_keys: 'observation', cnn_keys: '$^'}
-  decoder: {mlp_keys: 'observation', cnn_keys: '$^'}
 
 cem:
   task_behavior: Greedy

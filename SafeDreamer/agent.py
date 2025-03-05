@@ -118,7 +118,7 @@ class Agent(nj.Module):
         outs['log_entropy'] = outs['action'].entropy()
         outs['action'] = outs['action'].sample(seed=nj.rng())
     elif mode == 'train':
-      if self.config.expl_behavior in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
+      if self.config.task_behavior in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
         outs = expl_outs
         outs['log_entropy'] = jnp.zeros(outs['action'].shape[:1])
       else:

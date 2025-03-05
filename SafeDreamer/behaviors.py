@@ -479,7 +479,7 @@ class CCEPlanner(nj.Module):
         if self.config.use_cost:
             # 如果使用成本计算，评估成本并调整成本
             cost, cost_ret, cost_value = self.ac.cost_critics['extr'].score(traj_pi_gaus)
-            traj_cost = cost.sum(0) * (1000 / self.horizon)
+            traj_cost = cost.sum(0) * (2 / self.horizon)
         else:
             # 否则从重建中计算成本
             recon = self.wm.heads['decoder'](traj_pi_gaus)
