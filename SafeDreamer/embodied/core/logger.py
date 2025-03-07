@@ -9,7 +9,7 @@ import time
 import numpy as np
 
 from . import path
-
+from datetime import datetime
 
 class Logger:
 
@@ -273,9 +273,11 @@ class WandBOutput:
     self._pattern = re.compile(pattern)
     import wandb
     wandb.init(
-        project="safedreamer-highway-test",
-        name=logdir.name,
+        project="safedreamer-highway-go",
+        name=f"SafeDreamer_{datetime.now().strftime('%d-%H')}",  # 只保留日期+小时
         id=logdir.name,
+        # name=logdir.name,
+        # id=logdir.name,
         # sync_tensorboard=True,,
         config=dict(config),
     )

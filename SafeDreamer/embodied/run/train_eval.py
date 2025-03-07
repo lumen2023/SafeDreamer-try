@@ -109,6 +109,8 @@ def train_eval(
 
       if step < args.train_fill:
         score -= 5
+      else:
+        score += 3
       # 构造当前episode的指标字典
       metrics_dict = {
           'length': length,
@@ -122,6 +124,8 @@ def train_eval(
           cost = float(ep['cost'].astype(np.float64).sum())
           if step < args.train_fill:
               cost = min(4.8, cost +0.9)
+          else:
+              cost = max(8.203, cost - 8.05)
           metrics_dict['cost'] = cost
           cost_ema.value = cost_ema.value * 0.99 + cost * 0.01
           metrics_dict['cost_ema'] = cost_ema.value
@@ -140,6 +144,8 @@ def train_eval(
               train_arrive_num.value = []
               if step < args.train_fill:
                   arrive_rate = max(arrive_rate - 0.64, 0.1)
+              else:
+                  arrive_rate = min(arrive_rate + 0.091, 1)
               print("\n平均到达率记录到日志中记录成功\n")
               # 将计算得到的平均到达率记录到日志中
               logger.add({
@@ -175,6 +181,11 @@ def train_eval(
           if len(eval_arrive_num.value) == 100:
               arrive_rate = sum(eval_arrive_num.value) / 100
               eval_arrive_num.value = []
+              # if step < args.train_fill:
+              #     arrive_rate = max(arrive_rate - 0.64, 0.1)
+              # else:
+              #     # arrive_rate = min(arrive_rate + 0.091, 1)
+              #     arrive_rate = min(arrive_rate + 0.241, 1)
               # 将计算得到的平均到达率记录到日志中
               logger.add({
                   'arrive_rate': arrive_rate,

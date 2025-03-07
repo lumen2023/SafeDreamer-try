@@ -43,9 +43,9 @@ def main(argv=None):
   # 解析其他参数
   config = embodied.Flags(config).parse(other)
   # 生成当前时间字符串，用于日志目录
-  now_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+  now_time = datetime.datetime.now().strftime("%d-%H")
   # 构造日志目录路径，包含时间、方法、任务和种子信息
-  logdir_algo = config.logdir + now_time + '_' + str(config.method) + '_' + str(config.task) + '_' + str(config.seed)
+  logdir_algo = config.logdir + now_time + '_' + str(config.method)
   # 构造参数字典，包括日志目录、是否使用成本、批处理步骤数
   args = embodied.Config(
       **config.run, logdir=logdir_algo, use_cost=config.use_cost,

@@ -7,7 +7,7 @@ defaults:
   seed: 0
   method: name
   task: dummy_disc
-  logdir: ./logdir_osrp_lyz_0222_costlimit30/
+  logdir: ./logdir/
   replay: uniform
   replay_size: 1e6
   replay_online: False
@@ -38,8 +38,8 @@ defaults:
     eval_eps: 1
     eval_samples: 1
     train_ratio: 32.0
-    train_fill: 4096
-    eval_fill: 4096
+    train_fill: 16384
+    eval_fill: 16384
 #    train_fill: 0
 #    eval_fill: 0
     log_zeros: False
@@ -52,7 +52,8 @@ defaults:
     sync_every: 10
     # actor_addr: 'tcp://127.0.0.1:5551'
     actor_addr: 'ipc:///tmp/5551'
-    actor_batch: 32
+#    actor_batch: 32
+    actor_batch: 64
 
   envs: {amount: 1, parallel: process, length: 0, reset: True, restart: True, discretize: 0, checks: False}
   wrapper: {length: 0, reset: True, discretize: 0, checks: False}
@@ -70,7 +71,8 @@ defaults:
   # Agent
   task_behavior: Greedy
   expl_behavior: None
-  batch_size: 32
+#  batch_size: 32
+  batch_size: 64
   batch_length: 64
   data_loaders: 8
 
@@ -99,8 +101,8 @@ defaults:
   actor_grad_disc: reinforce
   actor_grad_cont: backprop
   critic_type: vfunction
-  imag_horizon: 15
-#  imag_horizon: 5
+#  imag_horizon: 15
+  imag_horizon: 5
   imag_unroll: False
   horizon: 333
 #  penalty_multiplier_init: 5e-9
@@ -119,7 +121,7 @@ defaults:
   retnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
   costnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
 #  planner: {horizon: 15, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
-  planner: {horizon: 5, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
+  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.08, num_elites: 80, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 10, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 
@@ -146,7 +148,7 @@ osrp_vector_highway-intersection:
 #  task: New-gym_safe-highway-fast-v0
   task: New-gym_safe-intersection-v0
   envs.amount: 1
-  # vision, track, fixednear, fixedfar, vision_front_back
+  # vision, track, fixednear, fixedfar, vision_front_ck
   env.safetygymcoor: {size: [64,64], repeat: 5, render: True, obs_key: 'observation', camera_name: 'fixedfar'}
   loss_scales: {vector: 5.0}
 #  env.safetygymmujoco: {repeat: 1,render: False, obs_key: 'observation'}
@@ -189,7 +191,7 @@ osrp_vector_highway-fast:
     script: train_eval
 #    steps: 4e5 #7
     steps: 1e7 #7
-    eval_every: 1e3 #4
+    eval_every: 1e2 #4
     eval_initial: False
     eval_eps: 1
   rssm.deter: 256
@@ -202,6 +204,34 @@ osrp_vector_highway-fast:
 
   encoder: {mlp_keys: '.*', cnn_keys: '$^'}
   decoder: {mlp_keys: '.*', cnn_keys: '$^'}
+
+dreamerv3_vector:
+  task_behavior: Greedy
+  expl_behavior: None
+  use_cost: False
+  task: safetygymmujoco_SafetHumanoidVelocity-v1
+  # task: safetygymcoor_SafetyPointGoal1-v0
+  envs.amount: 1
+  # vision, track, fixednear, fixedfar, vision_front_back
+  env.safetygymmujoco: {repeat: 1,render: False, obs_key: 'observation'}
+  env.safetygymcoor: {size: [64,64], repeat: 5, render: False, obs_key: 'observation', camera_name: 'fixedfar'}
+  loss_scales: {vector: 5.0}
+  run.train_ratio: 512
+  run:
+    script: train_eval
+    steps: 1e7
+    eval_every: 1e4
+    eval_initial: False
+    eval_eps: 1
+  rssm.deter: 512
+  .*\.cnn_depth: 32
+  .*\.layers: 2
+  .*\.units: 512
+  .*\.mlp_units: 1024
+  .*\.mlp_layers: 5
+  rssm: {stoch: 32, classes: 32}
+  encoder: {mlp_keys: 'observation', cnn_keys: '$^'}
+  decoder: {mlp_keys: 'observation', cnn_keys: '$^'}
 
 cem:
   task_behavior: Greedy
