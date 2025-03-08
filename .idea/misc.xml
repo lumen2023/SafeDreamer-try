@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="SafeDreamer" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="SafeDreamer-old" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="SafeDreamer" project-jdk-type="Python SDK" />
 </project>
