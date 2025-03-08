@@ -95,11 +95,12 @@ def train_eval(
 
   def per_episode(ep, mode):
       """处理每个episode结束后的数据记录，每10个episode取均值再记录一个点"""
-
-      test_num = 20
       if step < args.train_fill:
-          test_num = 10
-          print("per_episode step: ",step)
+        return
+      test_num = 20
+      # if step < args.train_fill:
+      #     test_num = 10
+      #     print("per_episode step: ",step)
       # 计算当前episode的指标
       length = len(ep['reward']) - 1
       score = float(ep['reward'].astype(np.float64).sum())
@@ -107,10 +108,10 @@ def train_eval(
       # arrive_dest: 1表示到达目的地，0表示未到达
       arrive_dest = int(not ep['crash'][-1])
 
-      if step < args.train_fill:
-        score -= 5
-      else:
-        score += 3
+      # if step < args.train_fill:
+      #   score -= 5
+      # else:
+      #   score += 3
       # 构造当前episode的指标字典
       metrics_dict = {
           'length': length,
@@ -122,10 +123,10 @@ def train_eval(
       # 如果episode中包含成本信息，则计算成本并更新指数移动平均值
       if 'cost' in ep:
           cost = float(ep['cost'].astype(np.float64).sum())
-          if step < args.train_fill:
-              cost = min(4.8, cost +0.9)
-          else:
-              cost = max(8.203, cost - 8.05)
+          # if step < args.train_fill:
+          #     cost = min(4.8, cost +0.9)
+          # else:
+          #     cost = max(8.203, cost - 8.05)
           metrics_dict['cost'] = cost
           cost_ema.value = cost_ema.value * 0.99 + cost * 0.01
           metrics_dict['cost_ema'] = cost_ema.value
@@ -142,10 +143,10 @@ def train_eval(
           if len(train_arrive_num.value) == 100:
               arrive_rate = sum(train_arrive_num.value) / 100
               train_arrive_num.value = []
-              if step < args.train_fill:
-                  arrive_rate = max(arrive_rate - 0.64, 0.1)
-              else:
-                  arrive_rate = min(arrive_rate + 0.091, 1)
+              # if step < args.train_fill:
+              #     arrive_rate = max(arrive_rate - 0.64, 0.1)
+              # else:
+              #     arrive_rate = min(arrive_rate + 0.091, 1)
               print("\n平均到达率记录到日志中记录成功\n")
               # 将计算得到的平均到达率记录到日志中
               logger.add({

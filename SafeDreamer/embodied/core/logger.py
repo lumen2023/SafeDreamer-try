@@ -274,7 +274,7 @@ class WandBOutput:
     import wandb
     wandb.init(
         project="safedreamer-highway-go",
-        name=f"SafeDreamer_{datetime.now().strftime('%d-%H')}",  # 只保留日期+小时
+        name=f"SafeDreamer_{datetime.now().strftime('%d-%H%M')}",  # 只保留日期+小时
         id=logdir.name,
         # name=logdir.name,
         # id=logdir.name,

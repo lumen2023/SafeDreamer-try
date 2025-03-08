@@ -121,7 +121,7 @@ defaults:
   retnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
   costnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
 #  planner: {horizon: 15, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
-  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.08, num_elites: 80, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
+  planner: {horizon: 5, num_samples: 800, mixture_coef: 0.08, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 10, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 
@@ -172,7 +172,7 @@ osrp_vector_highway-intersection:
 
 osrp_vector_highway-fast:
   task_behavior: Greedy
-  expl_behavior: CCEPlanner
+  expl_behavior: PIDPlanner
 #  expl_behavior: CEMPlanner
   use_cost: True
   cost_weight: 1
@@ -191,16 +191,16 @@ osrp_vector_highway-fast:
     script: train_eval
 #    steps: 4e5 #7
     steps: 1e7 #7
-    eval_every: 1e2 #4
+    eval_every: 1e1 #4
     eval_initial: False
     eval_eps: 1
-  rssm.deter: 256
+  rssm.deter: 512
   .*\.cnn_depth: 32
   .*\.layers: 2
-  .*\.units: 256
-  .*\.mlp_units: 256
-  .*\.mlp_layers: 3
-  rssm: {stoch: 16, classes: 16}
+  .*\.units: 512
+  .*\.mlp_units: 1024
+  .*\.mlp_layers: 5
+  rssm: {stoch: 32, classes: 32}
 
   encoder: {mlp_keys: '.*', cnn_keys: '$^'}
   decoder: {mlp_keys: '.*', cnn_keys: '$^'}

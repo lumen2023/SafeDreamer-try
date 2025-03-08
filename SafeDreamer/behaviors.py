@@ -300,12 +300,12 @@ class PIDPlanner(nj.Module):
         cost, cost_ret, cost_value = self.ac.cost_critics['extr'].score(traj_pi_gaus)
         short_cost = cost.sum(0)
         traj_cost = cost.sum(0)
-        traj_cost = traj_cost * (1000/ self.horizon)
+        traj_cost = traj_cost * (1/ self.horizon)
         traj_ret_penalty = ret[0] - state['lagrange_penalty'] * cost_ret[0]
       else:
         cost = self.cost_from_recon(recon['observation'].mode())
         # [horizon,num_samples]
-        traj_cost = cost.sum(0) * (1000/ self.horizon)
+        traj_cost = cost.sum(0) * (1/ self.horizon)
         # [num_samples]
 
       num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost<self.cost_limit, jnp.int32))
