@@ -1,0 +1,28 @@
+wandb: ERROR Could not find run <Run lyz_1023-southeastern-university/safedreamer-highway-go/20250306-193503_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0%3Fnw%3Dnwuserlyz_1023 (not found)>
+Traceback (most recent call last):
+  File "/home/lyz/anaconda3/envs/SafeDreamer-old/lib/python3.8/site-packages/wandb/apis/normalize.py", line 25, in wrapper
+    return func(*args, **kwargs)
+  File "/home/lyz/anaconda3/envs/SafeDreamer-old/lib/python3.8/site-packages/wandb/apis/public/api.py", line 991, in run
+    self._runs[path] = public.Run(self.client, entity, project, run_id)
+  File "/home/lyz/anaconda3/envs/SafeDreamer-old/lib/python3.8/site-packages/wandb/apis/public/runs.py", line 336, in __init__
+    self.load(force=not _attrs)
+  File "/home/lyz/anaconda3/envs/SafeDreamer-old/lib/python3.8/site-packages/wandb/apis/public/runs.py", line 444, in load
+    raise ValueError("Could not find run {}".format(self))
+ValueError: Could not find run <Run lyz_1023-southeastern-university/safedreamer-highway-go/20250306-193503_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0%3Fnw%3Dnwuserlyz_1023 (not found)>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/lyz/Desktop/Code/SafeDreamer-try（3）/plot.py", line 11, in <module>
+    run = api.run(run_path)
+  File "/home/lyz/anaconda3/envs/SafeDreamer-old/lib/python3.8/site-packages/wandb/apis/normalize.py", line 79, in wrapper
+    raise CommError(message, err).with_traceback(sys.exc_info()[2])
+  File "/home/lyz/anaconda3/envs/SafeDreamer-old/lib/python3.8/site-packages/wandb/apis/normalize.py", line 25, in wrapper
+    return func(*args, **kwargs)
+  File "/home/lyz/anaconda3/envs/SafeDreamer-old/lib/python3.8/site-packages/wandb/apis/public/api.py", line 991, in run
+    self._runs[path] = public.Run(self.client, entity, project, run_id)
+  File "/home/lyz/anaconda3/envs/SafeDreamer-old/lib/python3.8/site-packages/wandb/apis/public/runs.py", line 336, in __init__
+    self.load(force=not _attrs)
+  File "/home/lyz/anaconda3/envs/SafeDreamer-old/lib/python3.8/site-packages/wandb/apis/public/runs.py", line 444, in load
+    raise ValueError("Could not find run {}".format(self))
+wandb.errors.errors.CommError: Could not find run <Run lyz_1023-southeastern-university/safedreamer-highway-go/20250306-193503_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0%3Fnw%3Dnwuserlyz_1023 (not found)>

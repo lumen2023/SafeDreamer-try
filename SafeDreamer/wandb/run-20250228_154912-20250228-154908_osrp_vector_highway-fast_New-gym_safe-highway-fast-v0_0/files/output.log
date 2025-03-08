@@ -1,0 +1,75 @@
+Encoder CNN shapes: {}
+Encoder MLP shapes: {'observation': (30,)}
+Decoder CNN shapes: {}
+Decoder MLP shapes: {'observation': (30,)}
+想象SafeActorCritic--优化器
+JAX devices (1): [CpuDevice(id=0)]
+Policy devices: TFRT_CPU_0
+Train devices:  TFRT_CPU_0
+进入Agent train----
+Tracing train function.
+
+***世界模型模型训练***
+
+
+***世界模型loss获取***
+
+
+***世界模型loss获取***
+
+Optimizer model_opt has 1,926,685 variables.
+Optimizer actor_opt has 198,660 variables.
+Optimizer critic_opt has 263,167 variables.
+Optimizer critic_opt has 263,167 variables.
+<class 'embodied.core.counter.Counter'>
+Observation space:
+  observation      Space(dtype=float32, shape=(30,), low=-inf, high=inf)
+  reward           Space(dtype=float32, shape=(), low=-inf, high=inf)
+  cost             Space(dtype=float32, shape=(), low=-inf, high=inf)
+  crash            Space(dtype=bool, shape=(), low=False, high=True)
+  is_first         Space(dtype=bool, shape=(), low=False, high=True)
+  is_last          Space(dtype=bool, shape=(), low=False, high=True)
+  is_terminal      Space(dtype=bool, shape=(), low=False, high=True)
+Action space:
+  action           Space(dtype=float32, shape=(2,), low=-1.0, high=1.0)
+  reset            Space(dtype=bool, shape=(), low=False, high=True)
+加载完模型后的步数：  Counter(0)
+Did not find any checkpoint.
+Writing checkpoint: logdir_osrp_lyz_0222_costlimit30/20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/checkpoint.ckpt
+预填充--训练--数据集。
+Wrote checkpoint: logdir_osrp_lyz_0222_costlimit30/20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/checkpoint.ckpt
+per_episode step:  Counter(48)
+per_episode step:  Counter(53)
+per_episode step:  Counter(70)
+per_episode step:  Counter(106)
+per_episode step:  Counter(117)
+per_episode step:  Counter(141)
+per_episode step:  Counter(155)
+per_episode step:  Counter(167)
+per_episode step:  Counter(176)
+per_episode step:  Counter(198)
+
+avg_metrics记录到日志中记录成功
+
+Train 10 episodes average: length 18.8, score -21.0, speed 25.6, , cost 4.8
+预填充--评估--数据集。
+per_episode step:  Counter(200)
+per_episode step:  Counter(200)
+per_episode step:  Counter(200)
+per_episode step:  Counter(200)
+per_episode step:  Counter(200)
+per_episode step:  Counter(200)
+per_episode step:  Counter(200)
+per_episode step:  Counter(200)
+per_episode step:  Counter(200)
+Backend TkAgg is interactive backend. Turning interactive mode on.
+─────────────────────────────────── Step 198 ───────────────────────────────────
+episode/length 18.8 / episode/score -21.01 / episode/speed_average 25.57 /
+episode/cost 4.8 / episode/cost_ema 0.26
+
+Start training loop.
+
+开始训练Starting training at step 200
+进入Agent policy----
+Tracing policy function.
+进入CEMPlanner policy----

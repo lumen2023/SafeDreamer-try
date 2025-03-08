@@ -1,0 +1,15 @@
+{"time":"2025-02-28T20:24:13.477165901+08:00","level":"INFO","msg":"stream: starting","core version":"0.19.6","symlink path":"/home/lyz/Desktop/Code/SafeDreamer-try/SafeDreamer/wandb/run-20250228_202413-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-core.log"}
+{"time":"2025-02-28T20:24:13.579463756+08:00","level":"INFO","msg":"created new stream","id":"20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T20:24:13.579483136+08:00","level":"INFO","msg":"stream: started","id":"20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T20:24:13.579496453+08:00","level":"INFO","msg":"handler: started","stream_id":"20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T20:24:13.579493007+08:00","level":"INFO","msg":"writer: Do: started","stream_id":"20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T20:24:13.579512873+08:00","level":"INFO","msg":"sender: started","stream_id":"20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T20:24:14.153545753+08:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-28T20:24:17.599943328+08:00","level":"INFO","msg":"stream: closing","id":"20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T20:24:17.599961455+08:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-02-28T20:24:17.600455162+08:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-02-28T20:24:18.650281129+08:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-02-28T20:24:19.143657243+08:00","level":"INFO","msg":"handler: closed","stream_id":"20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T20:24:19.143678852+08:00","level":"INFO","msg":"writer: Close: closed","stream_id":"20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T20:24:19.143693265+08:00","level":"INFO","msg":"sender: closed","stream_id":"20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T20:24:19.14371981+08:00","level":"INFO","msg":"stream: closed","id":"20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}

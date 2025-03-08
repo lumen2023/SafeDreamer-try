@@ -1,0 +1,8 @@
+Encoder CNN shapes: {}
+Encoder MLP shapes: {'observation': (30,)}
+Decoder CNN shapes: {}
+Decoder MLP shapes: {'observation': (30,)}
+想象SafeActorCritic--优化器
+JAX devices (1): [gpu(id=0)]
+Policy devices: gpu:0
+Train devices:  gpu:0

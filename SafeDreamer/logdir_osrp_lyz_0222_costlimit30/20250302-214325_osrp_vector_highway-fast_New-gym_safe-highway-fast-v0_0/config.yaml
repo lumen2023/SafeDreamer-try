@@ -1,0 +1,244 @@
+actent: 0.0003
+actor:
+  act: silu
+  fan: avg
+  inputs: [deter, stoch]
+  layers: 2
+  maxstd: 1.0
+  minstd: 0.1
+  norm: layer
+  outnorm: false
+  outscale: 1.0
+  symlog_inputs: false
+  unimix: 0.01
+  units: 256
+  winit: normal
+actor_dist_cont: normal
+actor_dist_disc: onehot
+actor_grad_cont: backprop
+actor_grad_disc: reinforce
+actor_opt: {clip: 100.0, eps: 1e-05, lateclip: 0.0, lr: 0.0001, opt: adam, warmup: 0,
+  wd: 0.0}
+batch_length: 64
+batch_size: 128
+cont_head:
+  act: silu
+  dist: binary
+  fan: avg
+  inputs: [deter, stoch]
+  layers: 2
+  norm: layer
+  outnorm: false
+  outscale: 1.0
+  units: 256
+  winit: normal
+cost_critic_opt: {clip: 100.0, eps: 1e-05, lateclip: 0.0, lr: 3e-05, opt: adam, warmup: 0,
+  wd: 0.0}
+cost_head:
+  act: silu
+  bins: 255
+  dist: symlog_disc
+  fan: avg
+  inputs: [deter, stoch]
+  layers: 2
+  norm: layer
+  outnorm: false
+  outscale: 1.0
+  units: 256
+  winit: normal
+cost_limit: 35.0
+cost_weight: 0.8
+costnorm: {decay: 0.99, impl: perc_ema, max: 1.0, perchi: 95.0, perclo: 5.0}
+critic:
+  act: silu
+  bins: 255
+  dist: symlog_disc
+  fan: avg
+  inputs: [deter, stoch]
+  layers: 2
+  norm: layer
+  outnorm: false
+  outscale: 0.0
+  symlog_inputs: false
+  units: 256
+  winit: normal
+critic_opt: {clip: 100.0, eps: 1e-05, lateclip: 0.0, lr: 3e-05, opt: adam, warmup: 0,
+  wd: 0.0}
+critic_slowreg: logprob
+critic_type: vfunction
+data_loaders: 8
+decoder:
+  act: silu
+  cnn: resnet
+  cnn_blocks: 0
+  cnn_depth: 32
+  cnn_keys: $^
+  cnn_sigmoid: false
+  fan: avg
+  image_dist: mse
+  inputs: [deter, stoch]
+  minres: 4
+  mlp_keys: .*
+  mlp_layers: 3
+  mlp_units: 256
+  norm: layer
+  outscale: 1.0
+  resize: stride
+  vector_dist: mse
+  winit: normal
+disag_head:
+  act: silu
+  dist: mse
+  fan: avg
+  inputs: [deter, stoch, action]
+  layers: 2
+  norm: layer
+  outscale: 1.0
+  units: 256
+  winit: normal
+disag_models: 8
+disag_target: [stoch]
+dyn_loss: {free: 1.0, impl: kl}
+encoder: {act: silu, cnn: resnet, cnn_blocks: 0, cnn_depth: 32, cnn_keys: $^, fan: avg,
+  minres: 4, mlp_keys: .*, mlp_layers: 3, mlp_units: 256, norm: layer, resize: stride,
+  symlog_inputs: true, winit: normal}
+env:
+  atari:
+    actions: all
+    gray: false
+    lives: unused
+    noops: 0
+    repeat: 4
+    resize: opencv
+    size: [64, 64]
+    sticky: true
+  carracing:
+    obs_key: image
+    render: false
+    repeat: 2
+    size: [64, 64]
+  dmc:
+    camera: -1
+    repeat: 2
+    size: [64, 64]
+  dmlab:
+    episodic: true
+    repeat: 4
+    size: [64, 64]
+  loconav:
+    camera: -1
+    repeat: 2
+    size: [64, 64]
+  metadrive:
+    obs_key: image
+    render: false
+    repeat: 4
+    size: [64, 64]
+  minecraft:
+    break_speed: 100.0
+    size: [64, 64]
+  safetygym:
+    camera_name: fixedfar
+    obs_key: observation
+    render: false
+    repeat: 1
+    size: [64, 64]
+  safetygymcoor:
+    camera_name: fixedfar
+    obs_key: observation
+    render: false
+    repeat: 5
+    size: [64, 64]
+  safetygymmujoco:
+    obs_key: observation
+    render: false
+    repeat: 1
+    size: [64, 64]
+envs: {amount: 1, checks: false, discretize: 0, length: 0, parallel: process, reset: true,
+  restart: true}
+eval_dir: ''
+expl_behavior: CCEPlanner
+expl_opt: {clip: 100.0, eps: 1e-05, lr: 0.0001, opt: adam, warmup: 0, wd: 0.0}
+expl_rewards: {disag: 0.1, extr: 1.0}
+filter: .*
+grad_heads: [decoder, reward, cont, cost]
+horizon: 400
+imag_horizon: 15
+imag_unroll: false
+jax:
+  debug: false
+  debug_nans: false
+  jit: true
+  logical_cpus: 0
+  logical_gpus: 0
+  metrics_every: 10
+  platform: cpu
+  policy_devices: [0]
+  prealloc: true
+  precision: float16
+  train_devices: [0]
+lagrange_multiplier_init: 1e-06
+logdir: ./logdir_osrp_lyz_0222_costlimit30/
+loss_scales: {actor: 1.0, cont: 1.0, cost: 1.0, critic: 1.0, dyn: 0.5, image: 1.0,
+  rep: 0.1, reward: 1.0, slowreg: 1.0, vector: 5.0}
+method: osrp_vector_highway-fast
+model_opt: {clip: 1000.0, eps: 1e-08, lateclip: 0.0, lr: 0.0001, opt: adam, warmup: 0,
+  wd: 0.0}
+penalty_multiplier_init: 5e-09
+pessimistic: false
+pid: {d_delay: 10, decay_limit_step: 2.0, decay_num: 7, decay_time_step: 20000, delta_d_ema_alpha: 0.95,
+  delta_p_ema_alpha: 0.95, diff_norm: false, init_cost_limit: 20.0, init_penalty: 0.0,
+  kd: 0.0, ki: 0.05, kp: 1.2, lagrangian_multiplier_init: 0.001, penalty_max: 30.0,
+  sum_norm: true, use_cost_decay: false}
+planner: {horizon: 10, init_std: 1.0, iterations: 8, mixture_coef: 0.05, momentum: 0.1,
+  num_elites: 50, num_samples: 800, temperature: 10.0}
+rep_loss: {free: 1.0, impl: kl}
+replay: uniform
+replay_online: false
+replay_size: 1000000.0
+retnorm: {decay: 0.99, impl: perc_ema, max: 1.0, perchi: 95.0, perclo: 5.0}
+return_lambda: 0.95
+reward_head:
+  act: silu
+  bins: 255
+  dist: symlog_disc
+  fan: avg
+  inputs: [deter, stoch]
+  layers: 2
+  norm: layer
+  outnorm: false
+  outscale: 0.0
+  units: 256
+  winit: normal
+rssm: {act: silu, action_clip: 1.0, classes: 16, deter: 256, fan: avg, initial: learned,
+  norm: layer, stoch: 16, unimix: 0.01, units: 256, unroll: false, winit: normal}
+run:
+  actor_addr: ipc:///tmp/5551
+  actor_batch: 128
+  eval_eps: 1
+  eval_every: 1000.0
+  eval_fill: 4096
+  eval_initial: false
+  eval_samples: 1
+  expl_until: 0
+  from_checkpoint: ''
+  log_every: 300
+  log_keys_max: log_entropy|log_plan_action_mean|log_plan_action_std|log_plan_num_safe_traj|log_plan_ret|log_plan_cost|log_plan_penalty|log_plan_lagrange_multiplier|log_plan_penalty_multiplier|log_lagrange_penalty|log_lagrange_p|log_lagrange_i|log_lagrange_d
+  log_keys_mean: log_entropy|log_plan_action_mean|log_plan_action_std|log_plan_num_safe_traj|log_plan_ret|log_plan_cost|log_plan_penalty|log_plan_lagrange_multiplier|log_plan_penalty_multiplier|log_lagrange_penalty|log_lagrange_p|log_lagrange_i|log_lagrange_d
+  log_keys_sum: ^$
+  log_keys_video: [image, image2]
+  log_zeros: false
+  save_every: 900
+  script: train_eval
+  steps: 10000000.0
+  sync_every: 10
+  train_fill: 4096
+  train_ratio: 512.0
+seed: 0
+slow_critic_fraction: 0.02
+slow_critic_update: 1
+task: New-gym_safe-highway-fast-v0
+task_behavior: Greedy
+use_cost: true
+use_cost_model: true
+wrapper: {checks: false, discretize: 0, length: 0, reset: true}

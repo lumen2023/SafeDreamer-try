@@ -1,0 +1,7 @@
+{"time":"2025-02-28T15:49:12.679586697+08:00","level":"INFO","msg":"stream: starting","core version":"0.19.6","symlink path":"/home/lyz/Desktop/Code/SafeDreamer-try/SafeDreamer/wandb/run-20250228_154912-20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-core.log"}
+{"time":"2025-02-28T15:49:12.784059077+08:00","level":"INFO","msg":"created new stream","id":"20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T15:49:12.784074926+08:00","level":"INFO","msg":"stream: started","id":"20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T15:49:12.784834838+08:00","level":"INFO","msg":"handler: started","stream_id":"20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T15:49:12.784851468+08:00","level":"INFO","msg":"writer: Do: started","stream_id":"20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T15:49:12.784955703+08:00","level":"INFO","msg":"sender: started","stream_id":"20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0"}
+{"time":"2025-02-28T15:49:13.392309303+08:00","level":"INFO","msg":"Starting system monitor"}
