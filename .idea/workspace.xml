@@ -6,16 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="7be36dc6-23d4-4ce0-8e46-b51d930d05fd" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/behaviors.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/behaviors.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/configs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/configs.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/train.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/debug-internal.log" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/wandb/debug-internal.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/debug.log" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/wandb/debug.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/latest-run" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/wandb/latest-run" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/highway_env" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_env.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
