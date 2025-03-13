@@ -97,7 +97,7 @@ def train_eval(
       """处理每个episode结束后的数据记录，每10个episode取均值再记录一个点"""
       if step < args.train_fill:
         return
-      test_num = 20
+      test_num = 2
       # if step < args.train_fill:
       #     test_num = 10
       #     print("per_episode step: ",step)
@@ -250,12 +250,12 @@ def train_eval(
   print('预填充--训练--数据集。')
   # 使用随机策略与环境交互，直到训练回放缓冲区达到指定大小。
   while len(train_replay) < max(args.batch_steps, args.train_fill):
-  # while len(train_replay) < 64:
+  # while len(train_replay) < 32:
     driver_train(random_agent.policy, steps=100, lag=lag.lagrange_penalty, lag_p=lag.delta_p, lag_i=lag.pid_i, lag_d=lag.pid_d)
   print('预填充--评估--数据集。')
   # 使用随机策略与环境交互，直到评估回放缓冲区达到指定大小。
   while len(eval_replay) < max(args.batch_steps, args.eval_fill):
-  # while len(eval_replay) < 64:
+  # while len(eval_replay) < 32:
     driver_eval(random_agent.policy, steps=100, lag=lag.lagrange_penalty, lag_p=lag.delta_p, lag_i=lag.pid_i, lag_d=lag.pid_d)
 
   # 将当前性能指标结果添加到日志中。

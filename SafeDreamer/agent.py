@@ -389,36 +389,95 @@ class WorldModel(nj.Module):
     return model_loss.mean(), (state, out, metrics)
 
 
-  def imagine(self, policy, start, horizon, use_planner=False):
-    first_cont = (1.0 - start['is_terminal']).astype(jnp.float32)
-    keys = list(self.rssm.initial(1).keys())
-    if use_planner:
-      keys += ['action_mean','action_std', 'lagrange_multiplier', 'penalty_multiplier']
-      start = {k: v for k, v in start.items() if k in keys}
-      start['action'] = policy(start,0)
-      def step(prev, current_horizon): # add the current_horizon
-        prev = prev.copy()
-        action_mean = prev['action_mean']
-        action_std = prev['action_std']
-        state = self.rssm.img_step(prev, prev.pop('action'))
-        return {**state, 'action_mean':action_mean, 'action_std':action_std, 'action': policy(prev,current_horizon+1)}
-    else:
-      start = {k: v for k, v in start.items() if k in keys}
-      start['action'] = policy(start)
-      def step(prev, _):
-        prev = prev.copy()
-        state = self.rssm.img_step(prev, prev.pop('action'))
-        return {**state, 'action': policy(state)}
-    traj = jaxutils.scan(
-        step, jnp.arange(horizon), start, self.config.imag_unroll)
-    traj = {
-        k: jnp.concatenate([start[k][None], v], 0) for k, v in traj.items()}
-    cont = self.heads['cont'](traj).mode()
-    traj['cont'] = jnp.concatenate([first_cont[None], cont[1:]], 0)
-    discount = 1 - 1 / self.config.horizon
-    traj['weight'] = jnp.cumprod(discount * traj['cont'], 0) / discount
-    return traj
+  def new_imagine(self, policy, start, horizon, use_planner=False):
+      """
+      根据给定的策略和起始状态，想象一系列的行动轨迹。
 
+      参数:
+      - policy: 决策策略，用于选择行动。
+      - start: 起始状态，包含初始信息。
+      - horizon: 视野范围，即想象的步数。
+      - use_planner: 是否使用规划器，以影响行动的选择过程。
+
+      返回:
+      - traj: 行动轨迹，包含每个时间步的状态和行动。
+      """
+      # 计算起始状态的持续概率，用于后续计算
+      first_cont = (1.0 - start['is_terminal']).astype(jnp.float32)
+      # 获取初始状态的键值
+      keys = list(self.rssm.initial(1).keys())
+
+      if use_planner:
+          # 如果使用规划器，添加额外的键值，以处理更复杂的策略
+          keys += ['action_mean','action_std','action_mean_expl','action_std_expl', 'lagrange_multiplier', 'penalty_multiplier']
+          # 过滤start，只保留需要的键值，并添加当前策略选择的行动
+          start = {k: v for k, v in start.items() if k in keys}
+          start['action'] = policy(start,0)
+          # 定义每一步的处理函数，考虑当前视野范围
+          def step(prev, current_horizon):
+              prev = prev.copy()
+              action_mean = prev['action_mean_expl']
+              action_std = prev['action_std_expl']
+              state = self.rssm.img_step(prev, prev.pop('action'))
+              return {**state, 'action_mean_expl':action_mean, 'action_std_expl':action_std, 'action': policy(prev,current_horizon+1)}
+      else:
+          # 如果不使用规划器，直接根据策略选择行动
+          start = {k: v for k, v in start.items() if k in keys}
+          start['action'] = policy(start)
+          # 定义每一步的处理函数，不考虑视野范围
+          def step(prev, _):
+              prev = prev.copy()
+              state = self.rssm.img_step(prev, prev.pop('action'))
+              return {**state, 'action': policy(state)}
+
+      # 使用scan函数应用step函数，生成轨迹
+      traj = jaxutils.scan(
+          step, jnp.arange(horizon), start, self.config.imag_unroll)
+      # 添加起始状态到轨迹中
+      traj = {
+          k: jnp.concatenate([start[k][None], v], 0) for k, v in traj.items()}
+
+      # 计算轨迹中每一步的持续概率
+      cont = self.heads['cont'](traj).mode()
+      traj['cont'] = jnp.concatenate([first_cont[None], cont[1:]], 0)
+
+      # 计算折扣因子，用于后续计算权重
+      discount = 1 - 1 / self.config.horizon
+      traj['weight'] = jnp.cumprod(discount * traj['cont'], 0) / discount
+
+      return traj
+  def imagine(self, policy, start, horizon, use_planner=False):
+      first_cont = (1.0 - start['is_terminal']).astype(jnp.float32)
+      keys = list(self.rssm.initial(1).keys())
+      if use_planner:
+          keys += ['action_mean', 'action_std', 'lagrange_multiplier', 'penalty_multiplier']
+          start = {k: v for k, v in start.items() if k in keys}
+          start['action'] = policy(start, 0)
+
+          def step(prev, current_horizon):  # add the current_horizon
+              prev = prev.copy()
+              action_mean = prev['action_mean']
+              action_std = prev['action_std']
+              state = self.rssm.img_step(prev, prev.pop('action'))
+              return {**state, 'action_mean': action_mean, 'action_std': action_std,
+                      'action': policy(prev, current_horizon + 1)}
+      else:
+          start = {k: v for k, v in start.items() if k in keys}
+          start['action'] = policy(start)
+
+          def step(prev, _):
+              prev = prev.copy()
+              state = self.rssm.img_step(prev, prev.pop('action'))
+              return {**state, 'action': policy(state)}
+      traj = jaxutils.scan(
+          step, jnp.arange(horizon), start, self.config.imag_unroll)
+      traj = {
+          k: jnp.concatenate([start[k][None], v], 0) for k, v in traj.items()}
+      cont = self.heads['cont'](traj).mode()
+      traj['cont'] = jnp.concatenate([first_cont[None], cont[1:]], 0)
+      discount = 1 - 1 / self.config.horizon
+      traj['weight'] = jnp.cumprod(discount * traj['cont'], 0) / discount
+      return traj
   def report(self, data):
     state = self.initial(len(data['is_first']))
     report = {}

@@ -5,11 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7be36dc6-23d4-4ce0-8e46-b51d930d05fd" name="更改" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/SafeDreamer.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/SafeDreamer.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/behaviors.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/behaviors.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/configs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/configs.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/train.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/debug-internal.log" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/wandb/debug-internal.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/debug.log" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/wandb/debug.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/latest-run" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/wandb/latest-run" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/highway_env" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_env.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,32 +44,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.__init__.executor&quot;: &quot;Run&quot;,
-    &quot;Python.highway_fast_train.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.osrp_train_vector.executor&quot;: &quot;Run&quot;,
-    &quot;Python.plot.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_env.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowPanel.toolwindow.highlight.mappings&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowPanel.toolwindow.highlight.symlinks&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowPanel.toolwindow.show.date&quot;: &quot;false&quot;,
-    &quot;WebServerToolWindowPanel.toolwindow.show.permissions&quot;: &quot;false&quot;,
-    &quot;WebServerToolWindowPanel.toolwindow.show.size&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/lyz/Desktop/Code/SafeDreamer-try（4）&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.__init__.executor": "Run",
+    "Python.highway_fast_train.executor": "Run",
+    "Python.osrp_train_vector.executor": "Run",
+    "Python.plot.executor": "Run",
+    "Python.test_env.executor": "Debug",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "WebServerToolWindowPanel.toolwindow.highlight.mappings": "true",
+    "WebServerToolWindowPanel.toolwindow.highlight.symlinks": "true",
+    "WebServerToolWindowPanel.toolwindow.show.date": "false",
+    "WebServerToolWindowPanel.toolwindow.show.permissions": "false",
+    "WebServerToolWindowPanel.toolwindow.show.size": "false",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/lumen/@Code/SafeDreamer（2）",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
@@ -146,14 +152,14 @@
       <item itemvalue="Python.highway_fast_train" />
       <item itemvalue="Python.osrp_test_vector" />
       <item itemvalue="Python.osrp_train_vector" />
+      <item itemvalue="Python.test_env" />
       <item itemvalue="Python.plot" />
       <item itemvalue="Python.__init__" />
-      <item itemvalue="Python.test_env" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.plot" />
         <item itemvalue="Python.test_env" />
+        <item itemvalue="Python.plot" />
         <item itemvalue="Python.__init__" />
       </list>
     </recent_temporary>
@@ -161,8 +167,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-PY-243.25659.43" />
-        <option value="bundled-python-sdk-181015f7ab06-4df51de95216-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.25659.43" />
+        <option value="bundled-python-sdk-1b1018131e27-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.22562.180" />
       </set>
     </attachedChunks>
   </component>
@@ -186,25 +191,40 @@
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$USER_HOME$/anaconda3/envs/SafeDreamer-old/lib/python3.8/site-packages/highway_env/envs/safe_highway_env.py</url>
           <line>94</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
-          <line>74</line>
-          <option name="timeStamp" value="7" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py</url>
-          <line>353</line>
-          <option name="timeStamp" value="8" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/jaxagent.py</url>
           <line>66</line>
           <option name="timeStamp" value="9" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test_env.py</url>
+          <line>21</line>
+          <option name="timeStamp" value="10" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
+          <line>484</line>
+          <option name="timeStamp" value="11" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
+          <line>478</line>
+          <option name="timeStamp" value="13" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/nets.py</url>
+          <line>68</line>
+          <option name="timeStamp" value="15" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
+          <line>98</line>
+          <option name="timeStamp" value="17" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

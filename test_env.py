@@ -1,8 +1,8 @@
 import gymnasium as gym
 import highway_env
 for i in range(10):
-    env = gym.make('safe-highway-fast-v0', render_mode='human')
-    # env = gym.make('safe-intersection-v0', render_mode='human')
+    # env = gym.make('safe-highway-fast-v0', render_mode='human')
+    env = gym.make('safe-intersection-v0', render_mode='human')
 
     obs, info = env.reset()
     # 用于存储每一步的 is_first 状态
@@ -11,8 +11,8 @@ for i in range(10):
     done = truncated = False
     i = 0
     while not (done or truncated):
-        # action = -0.1 # Your agent code here
-        action = [0.1, 0.1]  # Your agent code here
+        action = -0.1 # Your agent code here
+        # action = [0.1, 0.1]  # Your agent code here
         i += 1
         # if i%2 == 0:
         #     action[1] = -0.1

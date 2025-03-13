@@ -300,12 +300,14 @@ class PIDPlanner(nj.Module):
         cost, cost_ret, cost_value = self.ac.cost_critics['extr'].score(traj_pi_gaus)
         short_cost = cost.sum(0)
         traj_cost = cost.sum(0)
-        traj_cost = traj_cost * (1/ self.horizon)
+        # traj_cost = traj_cost * (1/ self.horizon)
+        # traj_cost = traj_cost
         traj_ret_penalty = ret[0] - state['lagrange_penalty'] * cost_ret[0]
       else:
         cost = self.cost_from_recon(recon['observation'].mode())
         # [horizon,num_samples]
-        traj_cost = cost.sum(0) * (1/ self.horizon)
+        # traj_cost = cost.sum(0) * (1/ self.horizon)
+        traj_cost = cost.sum(0)
         # [num_samples]
 
       num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost<self.cost_limit, jnp.int32))
@@ -413,7 +415,7 @@ class CCEPlanner(nj.Module):
     elite_value, elite_actions = lax.cond(num_safe_traj < self.num_elites,lambda ret, cost, traj_pi_gaus: self.true_function(ret, cost, traj_pi_gaus), lambda ret, cost, traj_pi_gaus: self.false_function(ret, cost, traj_pi_gaus), ret, cost, traj_pi_gaus)
     return elite_value, elite_actions
 
-  def policy(self, latent, state):
+  def new_policy(self, latent, state):
     """
     使用 TD-MPC 推理规划下一步动作。
 
@@ -424,7 +426,7 @@ class CCEPlanner(nj.Module):
     返回值:
     - 一个包含动作及其相关统计信息的字典，以及更新后的动作均值和标准差。
     """
-
+    print("进入CCEPlanner \nTD-MPC 推理规划下一步动作")
     # 计算从策略中采样的轨迹数量
     num_pi_trajs = int(self.mixture_coef * self.num_samples)
 
@@ -438,27 +440,27 @@ class CCEPlanner(nj.Module):
         traj_pi = self.wm.imagine(policy, latent_pi, self.horizon)
 
     # 初始化动作的标准差
-    std = self.init_std * jnp.ones((self.horizon + 1,) + self.act_space.shape)
+    std_expl = self.init_std * jnp.ones((self.horizon + 1,) + self.act_space.shape)
 
-    if 'action_mean' in state.keys():
+    if 'action_mean_expl' in state.keys():
         # 如果存在动作均值，则滚动更新均值
-        mean = jnp.roll(state['action_mean'], -1, axis=0)
-        mean = mean.at[-1].set(mean[-2])
+        mean_expl = jnp.roll(state['action_mean_expl'], -1, axis=0)
+        mean_expl = mean_expl.at[-1].set(mean_expl[-2])
     else:
         # 否则初始化为零
-        mean = jnp.zeros((self.horizon + 1,) + self.act_space.shape)
+        mean_expl = jnp.zeros((self.horizon + 1,) + self.act_space.shape)
 
     for i in range(self.iterations):
         # 重复潜在状态以生成高斯分布的轨迹
         latent_gaus = {k: jnp.repeat(v, self.num_samples, 0) for k, v in latent.items()}
         latent_gaus['is_terminal'] = jnp.zeros(latent_gaus['deter'].shape[0])
-        latent_gaus['action_mean'] = mean
-        latent_gaus['action_std'] = std
+        latent_gaus['action_mean_expl'] = mean_expl
+        latent_gaus['action_std_expl'] = std_expl
 
         # 定义高斯分布的策略函数
         def policy(s, horizon):
-            current_mean = s['action_mean'][horizon]
-            current_std = s['action_std'][horizon]
+            current_mean = s['action_mean_expl'][horizon]
+            current_std = s['action_std_expl'][horizon]
             return jnp.clip(current_mean + current_std * jax.random.normal(nj.rng(), (self.num_samples,) + self.act_space.shape), -1, 1)
 
         # 想象未来的轨迹并使用规划器
@@ -479,7 +481,8 @@ class CCEPlanner(nj.Module):
         if self.config.use_cost:
             # 如果使用成本计算，评估成本并调整成本
             cost, cost_ret, cost_value = self.ac.cost_critics['extr'].score(traj_pi_gaus)
-            traj_cost = cost.sum(0) * (2 / self.horizon)
+            # traj_cost = cost.sum(0) * (2 / self.horizon)
+            traj_cost = cost.sum(0)
         else:
             # 否则从重建中计算成本
             recon = self.wm.heads['decoder'](traj_pi_gaus)
@@ -499,19 +502,127 @@ class CCEPlanner(nj.Module):
         elite_value, elite_actions = elite_value[elite_idxs], elite_actions[:, elite_idxs, :]
         _mean = elite_actions.mean(axis=1)
         _std = elite_actions.std(axis=1)
-        mean, std = self.momentum * mean + (1 - self.momentum) * _mean, _std
+        mean_expl = self.momentum * mean_expl + (1 - self.momentum) * _mean
+        std_expl  = self.momentum * std_expl + (1 - self.momentum) * _std
+
+    best_idx = elite_value.argmax()  # 选择奖励最高的轨迹索引
+    a_best = elite_actions[0, best_idx, :]  # 直接使用最优轨迹的第一步动作
+    mean = a_best.mean(axis=0)  # 计算最优轨迹的均值
+    std = a_best.std(axis=0)  # 计算最优轨迹的标准差
+    a = mean
+    return {
+        'action': jnp.expand_dims(a, 0),
+        'log_action_mean_expl': jnp.expand_dims(mean_expl.mean(axis=0), 0),
+        'log_action_std_expl': jnp.expand_dims(std_expl.mean(axis=0), 0),
+        'log_plan_num_safe_traj': jnp.expand_dims(num_safe_traj, 0),
+        'log_plan_ret': jnp.expand_dims(ret[0, :].mean(axis=0), 0),
+        'log_plan_cost': jnp.expand_dims(traj_cost.mean(axis=0), 0)
+    }, {'action_mean': mean, 'action_std': std,
+        "action_mean_expl": mean_expl, 'action_std_expl': std_expl}
+
+  def policy(self, latent, state):
+    """
+    使用 TD-MPC 推理规划下一步动作。
+
+    参数:
+    - latent: 包含当前潜在状态的字典。
+    - state: 包含当前系统状态的字典，包括动作统计信息。
+
+    返回值:
+    - 一个包含动作及其相关统计信息的字典，以及更新后的动作均值和标准差。
+    """
+
+    # 计算从策略中采样的轨迹数量
+    num_pi_trajs = int(self.mixture_coef * self.num_samples)
+
+    if num_pi_trajs > 0:
+      # 重复潜在状态以生成多个轨迹
+      latent_pi = {k: jnp.repeat(v, num_pi_trajs, 0) for k, v in latent.items()}
+      latent_pi['is_terminal'] = jnp.zeros(latent_pi['deter'].shape[0])
+
+      # 定义策略函数并想象未来的轨迹
+      policy = lambda s: self.ac.actor(sg(s)).sample(seed=nj.rng())
+      traj_pi = self.wm.imagine(policy, latent_pi, self.horizon)
+
+    # 初始化动作的标准差
+    std = self.init_std * jnp.ones((self.horizon + 1,) + self.act_space.shape)
+
+    if 'action_mean' in state.keys():
+      # 如果存在动作均值，则滚动更新均值
+      mean = jnp.roll(state['action_mean'], -1, axis=0)
+      mean = mean.at[-1].set(mean[-2])
+    else:
+      # 否则初始化为零
+      mean = jnp.zeros((self.horizon + 1,) + self.act_space.shape)
+
+    for i in range(self.iterations):
+      # 重复潜在状态以生成高斯分布的轨迹
+      latent_gaus = {k: jnp.repeat(v, self.num_samples, 0) for k, v in latent.items()}
+      latent_gaus['is_terminal'] = jnp.zeros(latent_gaus['deter'].shape[0])
+      latent_gaus['action_mean'] = mean
+      latent_gaus['action_std'] = std
+
+      # 定义高斯分布的策略函数
+      def policy(s, horizon):
+        current_mean = s['action_mean'][horizon]
+        current_std = s['action_std'][horizon]
+        return jnp.clip(
+          current_mean + current_std * jax.random.normal(nj.rng(), (self.num_samples,) + self.act_space.shape), -1, 1)
+
+      # 想象未来的轨迹并使用规划器
+      traj_gaus = self.wm.imagine(policy, latent_gaus, self.horizon, use_planner=True)
+
+      if num_pi_trajs > 0:
+        # 如果有策略轨迹，将策略轨迹和高斯轨迹合并
+        traj_pi_gaus = {}
+        for k, v in traj_pi.items():
+          traj_pi_gaus[k] = jnp.concatenate([traj_pi[k], traj_gaus[k]], axis=1)
+      else:
+        traj_pi_gaus = traj_gaus
+
+      # 计算奖励、回报和价值
+      rew, ret, value = self.ac.critics['extr'].score(traj_pi_gaus)
+      traj_rew = ret[0]
+
+      if self.config.use_cost:
+        # 如果使用成本计算，评估成本并调整成本
+        cost, cost_ret, cost_value = self.ac.cost_critics['extr'].score(traj_pi_gaus)
+        # traj_cost = cost.sum(0) * (2 / self.horizon)
+        traj_cost = cost.sum(0)
+
+      else:
+        # 否则从重建中计算成本
+        recon = self.wm.heads['decoder'](traj_pi_gaus)
+        # print("Debug: recon keys ->", recon.keys())  # 打印 recon 的键
+        cost = self.cost_from_recon(recon['observation'].mode())
+        # cost = self.cost_from_recon(recon['image'].mode())
+        traj_cost = cost.sum(0)
+
+      # 计算安全轨迹的数量
+      num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost < self.cost_limit_phys, jnp.int32))
+      print("Debug: traj_cost ->", traj_cost, "\n")
+      print("Debug: self.horizon ->", self.horizon, "\n")
+      print("Debug: num_safe_traj ->", num_safe_traj, "\n")
+      # 根据安全轨迹选择精英动作
+      elite_value, elite_actions = self.func_with_if_else(num_safe_traj, traj_rew, traj_cost, traj_pi_gaus)
+
+      # 获取精英动作的索引并更新均值和标准差
+      elite_idxs = jax.lax.top_k(elite_value, self.num_elites)[1]
+      elite_value, elite_actions = elite_value[elite_idxs], elite_actions[:, elite_idxs, :]
+      _mean = elite_actions.mean(axis=1)
+      _std = elite_actions.std(axis=1)
+      mean, std = self.momentum * mean + (1 - self.momentum) * _mean, _std
 
     # 获取最终的动作并返回结果
     a = mean[0]
     return {
-        'action': jnp.expand_dims(a, 0),
-        'log_action_mean': jnp.expand_dims(mean.mean(axis=0), 0),
-        'log_action_std': jnp.expand_dims(std.mean(axis=0), 0),
-        'log_plan_num_safe_traj': jnp.expand_dims(num_safe_traj, 0),
-        'log_plan_ret': jnp.expand_dims(ret[0, :].mean(axis=0), 0),
-        'log_plan_cost': jnp.expand_dims(traj_cost.mean(axis=0), 0)
+      'action': jnp.expand_dims(a, 0),
+      'log_action_mean': jnp.expand_dims(mean.mean(axis=0), 0),
+      'log_action_std': jnp.expand_dims(std.mean(axis=0), 0),
+      'log_plan_num_safe_traj': jnp.expand_dims(num_safe_traj, 0),
+      'log_plan_ret': jnp.expand_dims(ret[0, :].mean(axis=0), 0),
+      'log_plan_cost': jnp.expand_dims(traj_cost.mean(axis=0), 0)
     }, {'action_mean': mean, 'action_std': std}
-
 
 
 class CEMPlanner(nj.Module):
