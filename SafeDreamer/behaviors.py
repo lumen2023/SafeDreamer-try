@@ -183,6 +183,7 @@ class PIDPlanner(nj.Module):
     self.momentum = self.config.planner.momentum
     self.init_std = self.config.planner.init_std
     self.cost_limit = self.config.cost_limit
+    self.cost_limit_phys = self.config.cost_limit_phys
 
   def initial(self, batch_size):
     return self.ac.initial(batch_size)
@@ -310,7 +311,7 @@ class PIDPlanner(nj.Module):
         traj_cost = cost.sum(0)
         # [num_samples]
 
-      num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost<self.cost_limit, jnp.int32))
+      num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost<self.cost_limit_phys, jnp.int32))
 
 
       elite_value, elite_actions = self.func_with_if_else(num_safe_traj, traj_ret_penalty, traj_cost, traj_pi_gaus)
@@ -599,7 +600,7 @@ class CCEPlanner(nj.Module):
         traj_cost = cost.sum(0)
 
       # 计算安全轨迹的数量
-      num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost < self.cost_limit_phys, jnp.int32))
+      num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost < self.config.cost_limit_phys, jnp.int32))
       print("Debug: traj_cost ->", traj_cost, "\n")
       print("Debug: self.horizon ->", self.horizon, "\n")
       print("Debug: num_safe_traj ->", num_safe_traj, "\n")
