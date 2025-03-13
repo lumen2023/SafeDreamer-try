@@ -113,6 +113,7 @@ defaults:
   pessimistic: False
   cost_weight: 10.0
   cost_limit: 10.0
+  cost_limit_phys: 5
   use_cost_model: True
   return_lambda: 0.95
   critic_slowreg: logprob
