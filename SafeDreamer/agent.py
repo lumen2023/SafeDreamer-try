@@ -693,8 +693,8 @@ class ImagSafeActorCritic(nj.Module):
     metrics.update(self._metrics(traj, policy, logpi, ent, adv))
     loss = loss.mean()
 
-    if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
-
+    if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior is not None:
+      print("-----------使用了SAC_Lag----------------")
       cost_advs = []
       total = sum(self.cost_scales[k] for k in self.cost_critics)
       cost_rets = []

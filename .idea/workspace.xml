@@ -5,110 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7be36dc6-23d4-4ce0-8e46-b51d930d05fd" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/highway_fast_train.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/highway_fast_train.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/behaviors.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/behaviors.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/configs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/configs.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/core/logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/core/logger.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/latest-run" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_153720-20250228-153716_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_153720-20250228-153716_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_153720-20250228-153716_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_153720-20250228-153716_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_153720-20250228-153716_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_153720-20250228-153716_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_153720-20250228-153716_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/run-20250228-153716_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0.wandb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_154912-20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_154912-20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_154912-20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_154912-20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_154912-20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_154912-20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_154912-20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/run-20250228-154908_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0.wandb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161206-20250228-161202_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161206-20250228-161202_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161206-20250228-161202_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161206-20250228-161202_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161206-20250228-161202_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161206-20250228-161202_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161206-20250228-161202_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/run-20250228-161202_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0.wandb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161422-20250228-161419_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161422-20250228-161419_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161422-20250228-161419_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161422-20250228-161419_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161422-20250228-161419_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161422-20250228-161419_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_161422-20250228-161419_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/run-20250228-161419_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0.wandb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202106-20250228-202105_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202106-20250228-202105_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202106-20250228-202105_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202106-20250228-202105_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202106-20250228-202105_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202106-20250228-202105_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202106-20250228-202105_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/run-20250228-202105_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0.wandb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202413-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/config.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202413-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202413-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202413-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202413-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/wandb-summary.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202413-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202413-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202413-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202413-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/run-20250228-202411_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0.wandb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202823-20250228-202822_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202823-20250228-202822_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202823-20250228-202822_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202823-20250228-202822_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202823-20250228-202822_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202823-20250228-202822_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250228_202823-20250228-202822_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/run-20250228-202822_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0.wandb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250302_214328-20250302-214325_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250302_214328-20250302-214325_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250302_214328-20250302-214325_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250302_214328-20250302-214325_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250302_214328-20250302-214325_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250302_214328-20250302-214325_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/wandb/run-20250302_214328-20250302-214325_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/run-20250302-214325_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0.wandb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/highway_env" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/latest-run" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_102721-ubxu4qvr/files/config.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_102721-ubxu4qvr/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_102721-ubxu4qvr/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_102721-ubxu4qvr/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_102721-ubxu4qvr/files/wandb-summary.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_102721-ubxu4qvr/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_102721-ubxu4qvr/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_102721-ubxu4qvr/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_102721-ubxu4qvr/run-ubxu4qvr.wandb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_103533-n9ur203n/files/config.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_103533-n9ur203n/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_103533-n9ur203n/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_103533-n9ur203n/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_103533-n9ur203n/files/wandb-summary.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_103533-n9ur203n/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_103533-n9ur203n/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_103533-n9ur203n/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_103533-n9ur203n/run-n9ur203n.wandb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104023-2y9wf43h/files/config.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104023-2y9wf43h/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104023-2y9wf43h/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104023-2y9wf43h/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104023-2y9wf43h/files/wandb-summary.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104023-2y9wf43h/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104023-2y9wf43h/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104023-2y9wf43h/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104023-2y9wf43h/run-2y9wf43h.wandb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104557-lu7mgjde/files/config.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104557-lu7mgjde/files/output.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104557-lu7mgjde/files/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104557-lu7mgjde/files/wandb-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104557-lu7mgjde/files/wandb-summary.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104557-lu7mgjde/logs/debug-core.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104557-lu7mgjde/logs/debug-internal.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104557-lu7mgjde/logs/debug.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/wandb/run-20250308_104557-lu7mgjde/run-lu7mgjde.wandb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/highway_env/envs/common/abstract.py" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env/envs/common/abstract.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/highway_env/envs/safe_highway_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env/envs/safe_highway_env.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -139,6 +44,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python.DreamerV3_fast_train.executor": "Run",
     "Python.__init__.executor": "Run",
     "Python.highway_fast_train.executor": "Run",
     "Python.osrp_train_vector.executor": "Run",
@@ -153,7 +59,7 @@
     "WebServerToolWindowPanel.toolwindow.show.permissions": "false",
     "WebServerToolWindowPanel.toolwindow.show.size": "false",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/lumen/@Code/SafeDreamer（2）",
+    "last_opened_file_path": "/home/lumen/@Code/DiLu",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -169,6 +75,29 @@
     </key>
   </component>
   <component name="RunManager" selected="Python.highway_fast_train">
+    <configuration name="DreamerV3_fast_train" type="PythonConfigurationType" factoryName="Python" folderName="New Folder">
+      <module name="SafeDreamer" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="SafeDreamer" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/SafeDreamer" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/SafeDreamer/train.py" />
+      <option name="PARAMETERS" value="--configs dreamerv3_vector --method dreamerv3_vector --jax.logical_gpus 0" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="__init__" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="SafeDreamer" />
       <option name="ENV_FILES" value="" />
@@ -239,10 +168,11 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.highway_fast_train" />
+      <item itemvalue="Python.DreamerV3_fast_train" />
       <item itemvalue="Python.highway-fast-test" />
       <item itemvalue="Python.highway-intersection-test" />
       <item itemvalue="Python.highway_intersection_train " />
-      <item itemvalue="Python.highway_fast_train" />
       <item itemvalue="Python.osrp_test_vector" />
       <item itemvalue="Python.osrp_train_vector" />
       <item itemvalue="Python.test_env" />

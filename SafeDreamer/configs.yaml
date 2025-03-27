@@ -178,7 +178,7 @@ osrp_vector_highway-fast:
   expl_behavior: CCEPlanner
   use_cost: True
   cost_weight: 1
-  cost_limit: 10
+  cost_limit: 20
   cost_limit_phys: 5
   # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
 #  task: safetygymcoor_SafetyPointGoal-v0 safe-intersection-v0
@@ -193,7 +193,7 @@ osrp_vector_highway-fast:
   run:
     script: train_eval
 #    steps: 4e5 #7
-    steps: 5e5 #7
+    steps: 5e7 #7
     eval_every: 1e1 #4
     eval_initial: False
     eval_eps: 1
@@ -223,7 +223,7 @@ dreamerv3_vector:
   run.train_ratio: 512
   run:
     script: train_eval
-    steps: 1e6
+    steps: 1e7
     eval_every: 1e4
     eval_initial: False
     eval_eps: 1

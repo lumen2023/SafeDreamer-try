@@ -273,7 +273,7 @@ class WandBOutput:
     self._pattern = re.compile(pattern)
     import wandb
     wandb.init(
-        # mode="offline",
+        mode="offline",
         settings=wandb.Settings(init_timeout=10),
         project="safedreamer-highway-go",
         name=f"SafeDreamer_{datetime.now().strftime('%d-%H%M')}",  # 只保留日期+小时

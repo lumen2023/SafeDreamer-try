@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="highway_fast_train" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="highway_fast_train" type="PythonConfigurationType" factoryName="Python" folderName="New Folder">
     <module name="SafeDreamer" />
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />

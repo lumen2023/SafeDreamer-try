@@ -97,7 +97,7 @@ def train_eval(
       """处理每个episode结束后的数据记录，每10个episode取均值再记录一个点"""
       if step < args.train_fill:
         return
-      test_num = 2
+      test_num = 20
       # if step < args.train_fill:
       #     test_num = 10
       #     print("per_episode step: ",step)
