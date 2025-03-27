@@ -692,8 +692,8 @@ class ImagSafeActorCritic(nj.Module):
     loss *= self.config.loss_scales.actor
     metrics.update(self._metrics(traj, policy, logpi, ent, adv))
     loss = loss.mean()
-
-    if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior is not None:
+    # if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior is not None:
+    if self.config.task_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior is not None:
       print("-----------使用了SAC_Lag----------------")
       cost_advs = []
       total = sum(self.cost_scales[k] for k in self.cost_critics)
@@ -718,6 +718,8 @@ class ImagSafeActorCritic(nj.Module):
       metrics[f'penalty_multiplier'] = penalty_multiplier
       metrics[f'penalty'] = penalty
       loss += penalty
+    else:
+        print("-----------只使用了SAC----------------")
     return loss, metrics
 
   def _metrics(self, traj, policy, logpi, ent, adv):

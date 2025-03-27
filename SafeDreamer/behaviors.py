@@ -644,76 +644,104 @@ class CEMPlanner(nj.Module):
 
   def policy(self, latent, state):
     """
-    Plan next action using TD-MPC inference.
-    obs: raw input observation.
-    eval_mode: uniform sampling and action noise is disabled during evaluation.
-    step: current time step. determines e.g. planning horizon.
-    t0: whether current step is the first step of an episode.
-    """
-    horizon = self.config.planner.horizon
-    num_samples =self.config.planner.num_samples
-    mixture_coef = self.config.planner.mixture_coef
-    num_elites = self.config.planner.num_elites
-    temperature = self.config.planner.temperature
-    iterations = self.config.planner.iterations
-    momentum = self.config.planner.momentum
-    init_std = self.config.planner.init_std
-    cost_limit = self.config.cost_limit
+    使用TD-MPC推理规划下一步动作。
 
+    参数:
+    - latent: 包含当前潜在状态的字典。
+    - state: 包含当前系统状态的字典，包括动作统计信息。
+
+    返回值:
+    - 一个包含动作及其相关统计信息的字典，以及更新后的动作均值和标准差。
+    """
+
+    # 加载配置参数
+    horizon = self.config.planner.horizon  # 规划时间范围
+    num_samples = self.config.planner.num_samples  # 样本数量
+    mixture_coef = self.config.planner.mixture_coef  # 混合系数
+    num_elites = self.config.planner.num_elites  # 精英样本数量
+    temperature = self.config.planner.temperature  # 温度参数
+    iterations = self.config.planner.iterations  # 迭代次数
+    momentum = self.config.planner.momentum  # 动量参数
+    init_std = self.config.planner.init_std  # 初始化标准差
+    cost_limit = self.config.cost_limit  # 成本限制
+
+    # 计算从策略中采样的轨迹数量
     num_pi_trajs = int(mixture_coef * num_samples)
     if num_pi_trajs > 0:
-      latent_pi = {k: jnp.repeat(v,num_pi_trajs,0) for k, v in latent.items()}
+      # 重复潜在状态以生成多个轨迹
+      latent_pi = {k: jnp.repeat(v, num_pi_trajs, 0) for k, v in latent.items()}
       latent_pi['is_terminal'] = jnp.zeros(latent_pi['deter'].shape[0])
+
+      # 定义策略函数并想象未来的轨迹
       policy = lambda s: self.ac.actor(sg(s)).sample(seed=nj.rng())
       traj_pi = self.wm.imagine(policy, latent_pi, horizon)
 
-    std = init_std * jnp.ones((horizon+1,)+self.act_space.shape)
+    # 初始化动作的标准差
+    std = init_std * jnp.ones((horizon + 1,) + self.act_space.shape)
+
     if 'action_mean' in state.keys():
+      # 如果存在动作均值，则滚动更新均值
       mean = jnp.roll(state['action_mean'], -1, axis=0)
       mean = mean.at[-1].set(mean[-2])
     else:
-      mean = jnp.zeros((horizon+1,)+self.act_space.shape)
+      # 否则初始化为零
+      mean = jnp.zeros((horizon + 1,) + self.act_space.shape)
 
     for i in range(iterations):
-      latent_gaus = {k: jnp.repeat(v,num_samples,0) for k, v in latent.items()}
+      # 重复潜在状态以生成高斯分布的轨迹
+      latent_gaus = {k: jnp.repeat(v, num_samples, 0) for k, v in latent.items()}
       latent_gaus['is_terminal'] = jnp.zeros(latent_gaus['deter'].shape[0])
       latent_gaus['action_mean'] = mean
       latent_gaus['action_std'] = std
-      def policy(s,horizon):
+
+      # 定义高斯分布的策略函数
+      def policy(s, horizon):
         current_mean = s['action_mean'][horizon]
         current_std = s['action_std'][horizon]
-        action = jnp.clip(current_mean + current_std * jax.random.normal(nj.rng(),(num_samples,)+self.act_space.shape),-1, 1)
+        action = jnp.clip(
+          current_mean + current_std * jax.random.normal(nj.rng(), (num_samples,) + self.act_space.shape), -1, 1)
         return action
+
+      # 想象未来的轨迹并使用规划器
       traj_gaus = self.wm.imagine(policy, latent_gaus, horizon, use_planner=True)
 
       if num_pi_trajs > 0:
-        traj_pi_gaus ={}
+        # 如果有策略轨迹，将策略轨迹和高斯轨迹合并
+        traj_pi_gaus = {}
         for k, v in traj_pi.items():
-          traj_pi_gaus[k] = jnp.concatenate([traj_pi[k],traj_gaus[k]],axis=1)
+          traj_pi_gaus[k] = jnp.concatenate([traj_pi[k], traj_gaus[k]], axis=1)
       else:
         traj_pi_gaus = traj_gaus
+
+      # 计算奖励、回报和价值
       rew, ret, value = self.ac.critics['extr'].score(traj_pi_gaus)
 
-      # [horizon,num_samples]
+      # 计算轨迹奖励总和
       traj_rew = rew.sum(0)
 
-      elite_idxs = jax.lax.top_k(traj_rew,num_elites)[1]
-      elite_value, elite_actions = traj_rew[elite_idxs], traj_pi_gaus['action'][:,elite_idxs,:]
-      # [num_samples] traj:horizon,num_elites,dim]
+      # 获取精英索引及对应的奖励和动作
+      elite_idxs = jax.lax.top_k(traj_rew, num_elites)[1]
+      elite_value, elite_actions = traj_rew[elite_idxs], traj_pi_gaus['action'][:, elite_idxs, :]
 
-      # Update parameters
+      # 更新参数
       max_value = elite_value.max()
-      score = jnp.exp(temperature*(elite_value - max_value))
+      score = jnp.exp(temperature * (elite_value - max_value))
       score /= score.sum(0)
-      _mean = jnp.sum(jnp.expand_dims(score,1) * elite_actions , axis=1) / (score.sum(0) + 1e-9) 
-      #[num_elites,1] * [horizon, num_elites,action_dim] -> [horizon,action_dim]
-
-      _std = jnp.sqrt(jnp.sum(jnp.expand_dims(score,1) * (elite_actions -jnp.expand_dims(_mean,1)) ** 2, axis=1) / (score.sum(0) + 1e-9))
+      _mean = jnp.sum(jnp.expand_dims(score, 1) * elite_actions, axis=1) / (score.sum(0) + 1e-9)
+      _std = jnp.sqrt(jnp.sum(jnp.expand_dims(score, 1) * (elite_actions - jnp.expand_dims(_mean, 1)) ** 2, axis=1) / (
+                score.sum(0) + 1e-9))
       mean, std = momentum * mean + (1 - momentum) * _mean, _std
 
-
+    # 获取最终的动作并返回结果
     a = mean[0]
-    return {'action': jnp.expand_dims(a,0), 'log_action_mean': jnp.expand_dims(mean.mean(axis=0),0), 'log_action_std': jnp.expand_dims(std.mean(axis=0),0), 'log_plan_num_safe_traj': jnp.zeros(1), 'log_plan_ret': jnp.expand_dims(ret[0,:].mean(axis=0),0), 'log_plan_cost': jnp.zeros(1)}, {'action_mean': mean, 'action_std': std}
+    return {
+      'action': jnp.expand_dims(a, 0),
+      'log_action_mean': jnp.expand_dims(mean.mean(axis=0), 0),
+      'log_action_std': jnp.expand_dims(std.mean(axis=0), 0),
+      'log_plan_num_safe_traj': jnp.zeros(1),
+      'log_plan_ret': jnp.expand_dims(ret[0, :].mean(axis=0), 0),
+      'log_plan_cost': jnp.zeros(1)
+    }, {'action_mean': mean, 'action_std': std}
 
 
 class CEMPlanner_parallel(nj.Module):
