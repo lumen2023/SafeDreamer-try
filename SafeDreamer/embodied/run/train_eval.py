@@ -116,30 +116,43 @@ def train_eval(
       # step级别的记录比较
       log_episode_stepwise(ep, episode_idx=step)  # 或者用 counter 给每个 episode 命名
 
-      # === 第一步：总和统计 ===
-      moe_ratio = np.array(ep['log_moe_ratio'])  # shape (T, 3) （）
-      num_traj = ep['log_plan_num_traj'] # num_traj 策略轨迹数目 （）
+      # === 第一步：总和/均值统计（全部转标量） ===
+      T = int(len(ep['reward']))
 
-      num_safe_pi = ep['log_plan_num_safe_pi'].sum()
-      num_safe_gaus = ep['log_plan_num_safe_gaus'].sum()
-      num_safe_idm = ep['log_plan_num_safe_idm'].sum()
-      num_safe_total = num_safe_pi + num_safe_gaus + num_safe_idm + 1e-6
+      # MoE（可选）
+      if 'log_moe_ratio' in ep:
+          moe = np.asarray(ep['log_moe_ratio'])
+          if moe.ndim == 3 and moe.shape[1] == 1:
+              moe = moe[:, 0, :]
+          metrics_dict.update({
+              'moe_ratio_pi_mean': float(moe[:, 0].mean()),
+              'moe_ratio_gaus_mean': float(moe[:, 1].mean()),
+              'moe_ratio_idm_mean': float(moe[:, 2].mean()),
+          })
 
-      # === 第二步：输出指标 ===
+      # 数量型
+      num_traj_total = float(np.asarray(ep['log_plan_num_traj']).sum())
+      num_safe_total = float(np.asarray(ep['log_plan_num_safe_traj']).sum())
+
+      # 每策略“每步平均”候选条数
+      num_pi_avg = float(np.asarray(ep['log_plan_num_pi']).sum() / (T + 1e-6))
+      num_gaus_avg = float(np.asarray(ep['log_plan_num_gaus']).sum() / (T + 1e-6))
+      num_idm_avg = float(np.asarray(ep['log_plan_num_idm']).sum() / (T + 1e-6))
+
+      # 比例/安全率
+      num_traj_per_step = num_traj_total / (T + 1e-6)
+      safe_ratio_total = num_safe_total / (num_traj_total + 1e-6)
+
+      # === 第二步：更新指标（全部是标量） ===
       metrics_dict.update({
-          # 0 MoE决策轨迹来源比例
-          'num_pi': ep['log_plan_num_pi'].sum() / len(ep['reward']),     #（）
-          'num_gaus': ep['log_plan_num_gaus'].sum() / len(ep['reward']), #（）
-          'num_idm': ep['log_plan_num_idm'].sum() / len(ep['reward']),   #（）
-          # 1 安全轨迹总数
-          'num_safe': float(num_safe_total),
-          # 2 总轨迹数
-          'num_traj': float(num_traj),
-          # 3 安全轨迹数量 / 总候选轨迹数
-          # 假设每步输出固定 N 条轨迹，episode 有 T 步
-          # ep['log_plan_safe_traj'] 是每步所有安全轨迹总数
-          'safe_ratio_total': float(
-              ep['log_plan_num_safe_traj'].sum() / (len(ep['reward']) * num_traj + 1e-6)),
+          'num_pi': num_pi_avg,
+          'num_gaus': num_gaus_avg,
+          'num_idm': num_idm_avg,
+
+          'num_safe': num_safe_total,
+          'num_traj_total': num_traj_total,
+          'num_traj_per_step': num_traj_per_step,
+          'safe_ratio_total': safe_ratio_total,
       })
 
       # 根据 mode 分别存入对应的缓冲区

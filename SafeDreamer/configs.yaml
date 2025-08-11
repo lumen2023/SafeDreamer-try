@@ -197,7 +197,7 @@ osrp_vector_highway-fast:
     script: train_eval
 #    steps: 4e5 #7
     steps: 5e7 #7
-    eval_every: 1e4 #4
+    eval_every: 1e1 #4
     eval_initial: False
     eval_eps: 1
   rssm.deter: 512
