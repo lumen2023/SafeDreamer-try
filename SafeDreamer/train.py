@@ -44,7 +44,7 @@ def main(argv=None):
   config = embodied.Flags(config).parse(other)
   # 生成当前时间字符串，用于日志目录
   now_time = datetime.datetime.now().strftime("%d-%H")
-  parent_dir = os.path.abspath(os.path.join(config.logdir, "../../../logs/"))  # 获取 SafeDreamer 的外部目录
+  parent_dir = os.path.abspath(os.path.join(config.logdir, "../../../EchoDreamer-logs/"))  # 获取 SafeDreamer 的外部目录
   logdir_algo = os.path.join(parent_dir, now_time + '_' + str(config.method))  # 创建新的日志路径
   # # 构造日志目录路径，包含时间、方法、任务和种子信息
   # logdir_algo = config.logdir + now_time + '_' + str(config.method)

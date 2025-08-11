@@ -5,12 +5,29 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7be36dc6-23d4-4ce0-8e46-b51d930d05fd" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/highway_fast_test.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/highway_fast_test.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/highway_fast_train.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/highway_fast_train.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/highway_intersection_test.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/highway_intersection_test.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/highway_intersection_train_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/highway_intersection_train_.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/osrp_test_vector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/osrp_test_vector.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/osrp_train_vector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/osrp_train_vector.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/test_env.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/test_env.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/agent.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/behaviors.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/behaviors.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/configs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/configs.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/core/driver.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/core/driver.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/core/logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/core/logger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/core/when.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/core/when.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/envs/from_gymnasium.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/envs/from_gymnasium.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/nets.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/nets.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/train.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/highway_env" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/highway_env/envs/common/abstract.py" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env/envs/common/abstract.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/highway_env/envs/safe_highway_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env/envs/safe_highway_env.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/highway_env/envs/safe_intersection_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env/envs/safe_intersection_env.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_env.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,6 +45,11 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="ROOT_SYNC" value="DONT_SYNC" />
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/anaconda3/envs/SafeDreamer/lib/python3.8/site-packages/ruamel/yaml/constructor.py" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/anaconda3/envs/SafeDreamer/lib/python3.8/site-packages/ruamel/yaml/main.py" root0="SKIP_INSPECTION" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 7
 }</component>
@@ -44,9 +66,11 @@
     "Python.DreamerV3_fast_train.executor": "Run",
     "Python.__init__.executor": "Run",
     "Python.highway_fast_train.executor": "Run",
+    "Python.highway_intersection_train .executor": "Run",
     "Python.osrp_train_vector.executor": "Run",
     "Python.plot.executor": "Run",
     "Python.test_env.executor": "Debug",
+    "Python.train_eval.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
@@ -56,13 +80,13 @@
     "WebServerToolWindowPanel.toolwindow.show.permissions": "false",
     "WebServerToolWindowPanel.toolwindow.show.size": "false",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/lumen/@Code/DiLu",
+    "last_opened_file_path": "/home/lumen/@Code/DLPA",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -72,7 +96,7 @@
     </key>
   </component>
   <component name="RunManager" selected="Python.highway_fast_train">
-    <configuration name="DreamerV3_fast_train" type="PythonConfigurationType" factoryName="Python" folderName="New Folder">
+    <configuration name="DreamerV3_fast_train" type="PythonConfigurationType" factoryName="Python" folderName="Highway-Fast">
       <module name="SafeDreamer" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -86,6 +110,7 @@
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/SafeDreamer/train.py" />
       <option name="PARAMETERS" value="--configs dreamerv3_vector --method dreamerv3_vector --jax.logical_gpus 0" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -165,16 +190,16 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.highway_fast_train" />
       <item itemvalue="Python.DreamerV3_fast_train" />
-      <item itemvalue="Python.highway-fast-test" />
-      <item itemvalue="Python.highway-intersection-test" />
+      <item itemvalue="Python.highway_fast_train" />
       <item itemvalue="Python.highway_intersection_train " />
       <item itemvalue="Python.osrp_test_vector" />
       <item itemvalue="Python.osrp_train_vector" />
+      <item itemvalue="Python.highway-fast-test" />
+      <item itemvalue="Python.highway-intersection-test" />
       <item itemvalue="Python.test_env" />
-      <item itemvalue="Python.plot" />
       <item itemvalue="Python.__init__" />
+      <item itemvalue="Python.plot" />
     </list>
     <recent_temporary>
       <list>
@@ -202,6 +227,7 @@
       <workItem from="1740740256895" duration="7391000" />
       <workItem from="1740877589825" duration="6431000" />
       <workItem from="1740915660119" duration="14874000" />
+      <workItem from="1746283023118" duration="15000" />
     </task>
     <servers />
   </component>
@@ -222,18 +248,13 @@
           <option name="timeStamp" value="9" />
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/test_env.py</url>
-          <line>21</line>
-          <option name="timeStamp" value="10" />
-        </line-breakpoint>
-        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
-          <line>485</line>
+          <line>493</line>
           <option name="timeStamp" value="11" />
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
-          <line>479</line>
+          <line>486</line>
           <option name="timeStamp" value="13" />
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
@@ -241,10 +262,45 @@
           <line>68</line>
           <option name="timeStamp" value="15" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test_env.py</url>
+          <line>20</line>
+          <option name="timeStamp" value="23" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
+          <line>123</line>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
+          <line>114</line>
+          <option name="timeStamp" value="33" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py</url>
+          <line>425</line>
+          <option name="timeStamp" value="37" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
           <line>98</line>
-          <option name="timeStamp" value="17" />
+          <option name="timeStamp" value="60" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
+          <line>715</line>
+          <option name="timeStamp" value="64" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py</url>
+          <line>77</line>
+          <option name="timeStamp" value="68" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
+          <line>527</line>
+          <option name="timeStamp" value="69" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -275,8 +275,11 @@ class WandBOutput:
     wandb.init(
         mode="offline",
         settings=wandb.Settings(init_timeout=10),
-        project="safedreamer-highway-go",
-        name=f"SafeDreamer_{datetime.now().strftime('%d-%H%M')}",  # 只保留日期+小时
+        project="Test-EchoDreamer-highway-go",
+        # project="EchoDreamer-intersection-go",
+        # name=f"PID-Planner_{datetime.now().strftime('%d-%H%M')}",  # 只保留日期+小时
+        name=f"1000-20%-idm50-CCEPlanner_{datetime.now().strftime('%m%d-%H%M')}",  # 只保留日期+小时
+        # name=f"CCEPlanner_{datetime.now().strftime('%m%d-%H%M')}",  # 只保留日期+小时
         id=logdir.name,
         # name=logdir.name,
         # id=logdir.name,

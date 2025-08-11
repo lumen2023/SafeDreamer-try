@@ -100,10 +100,11 @@ class Agent(nj.Module):
         prev_latent, prev_action, embed, obs['is_first'])
     #self.expl_behavior.policy(latent, expl_state)
     task_outs, task_state = self.task_behavior.policy(latent, task_state)
-    expl_outs, expl_state = self.expl_behavior.policy(latent, expl_state)
+    expl_outs, expl_state = self.expl_behavior.policy(latent, expl_state, obs)
 
     # 根据模式选择策略输出。
     if mode == 'eval':
+      print("！！！ 进入评估部分了  ！！！    agent.policy----")
       if self.config.expl_behavior in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
         outs = expl_outs
         outs['log_entropy'] = jnp.zeros(outs['action'].shape[:1])
@@ -111,6 +112,7 @@ class Agent(nj.Module):
         outs = task_outs
         outs['action'] = outs['action'].sample(seed=nj.rng())
     elif mode == 'explore':
+      print("！！！ 进入探索部分了  ！！！    agent.policy----")
       outs = expl_outs
       if self.config.expl_behavior in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
         outs['log_entropy'] = jnp.zeros(outs['action'].shape[:1])
@@ -118,6 +120,7 @@ class Agent(nj.Module):
         outs['log_entropy'] = outs['action'].entropy()
         outs['action'] = outs['action'].sample(seed=nj.rng())
     elif mode == 'train':
+      print("！！！ 进入训练部分了  ！！！    agent.policy----")
       if self.config.task_behavior in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
         outs = expl_outs
         outs['log_entropy'] = jnp.zeros(outs['action'].shape[:1])
@@ -239,17 +242,39 @@ class Agent(nj.Module):
 
 
   def preprocess(self, obs):
+    """
+    预处理函数，用于转换观察值数据类型和归一化。
+
+    该函数旨在对输入的观察值字典进行预处理，包括：
+    - 跳过特定前缀或关键字的观察值（例如：以'log_'开头或为'reserved'关键字）
+    - 对于多维且类型为uint8的数据，将其转换为计算所用的数据类型，并进行归一化
+    - 对其他数据，将其转换为float32类型
+    - 添加或更新'cont'键，计算并存储非终端状态的浮点表示
+
+    参数:
+    obs (dict): 包含观察值的字典，其中键是观察值的名称，值是对应的观察值数据
+
+    返回:
+    dict: 预处理后的观察值字典
+    """
+    # 复制输入的观察值字典，以避免修改原始数据
     obs = obs.copy()
     for key, value in obs.items():
-      if key.startswith('log_') or key in ('key',):
-        continue
-      if len(value.shape) > 3 and value.dtype == jnp.uint8:
-        value = jaxutils.cast_to_compute(value) / 255.0
-      else:
-        value = value.astype(jnp.float32)
-      obs[key] = value
+        # 跳过特定前缀或关键字的观察值
+        if key.startswith('log_') or key in ('key',):
+            continue
+        # 对多维且类型为uint8的数据进行转换和归一化
+        if len(value.shape) > 3 and value.dtype == jnp.uint8:
+            value = jaxutils.cast_to_compute(value) / 255.0
+        # 对其他数据进行数据类型转换
+        else:
+            value = value.astype(jnp.float32)
+        # 更新预处理后的观察值到字典中
+        obs[key] = value
+    # 计算并更新非终端状态的浮点表示
     obs['cont'] = 1.0 - obs['is_terminal'].astype(jnp.float32)
     return obs
+
 
 
 class WorldModel(nj.Module):
@@ -447,37 +472,72 @@ class WorldModel(nj.Module):
 
       return traj
   def imagine(self, policy, start, horizon, use_planner=False):
-      first_cont = (1.0 - start['is_terminal']).astype(jnp.float32)
-      keys = list(self.rssm.initial(1).keys())
-      if use_planner:
-          keys += ['action_mean', 'action_std', 'lagrange_multiplier', 'penalty_multiplier']
-          start = {k: v for k, v in start.items() if k in keys}
-          start['action'] = policy(start, 0)
+    # 计算初始状态的continuation概率，将is_terminal转换为float32类型
+    first_cont = (1.0 - start['is_terminal']).astype(jnp.float32)
 
-          def step(prev, current_horizon):  # add the current_horizon
-              prev = prev.copy()
-              action_mean = prev['action_mean']
-              action_std = prev['action_std']
-              state = self.rssm.img_step(prev, prev.pop('action'))
-              return {**state, 'action_mean': action_mean, 'action_std': action_std,
-                      'action': policy(prev, current_horizon + 1)}
-      else:
-          start = {k: v for k, v in start.items() if k in keys}
-          start['action'] = policy(start)
+    # 获取RSSM模型初始状态的键值列表
+    keys = list(self.rssm.initial(1).keys())
 
-          def step(prev, _):
-              prev = prev.copy()
-              state = self.rssm.img_step(prev, prev.pop('action'))
-              return {**state, 'action': policy(state)}
-      traj = jaxutils.scan(
-          step, jnp.arange(horizon), start, self.config.imag_unroll)
-      traj = {
-          k: jnp.concatenate([start[k][None], v], 0) for k, v in traj.items()}
-      cont = self.heads['cont'](traj).mode()
-      traj['cont'] = jnp.concatenate([first_cont[None], cont[1:]], 0)
-      discount = 1 - 1 / self.config.horizon
-      traj['weight'] = jnp.cumprod(discount * traj['cont'], 0) / discount
-      return traj
+    if use_planner:
+        # 如果使用规划器，则添加额外的键值：action_mean、action_std、lagrange_multiplier、penalty_multiplier
+        keys += ['action_mean', 'action_std', 'lagrange_multiplier', 'penalty_multiplier']
+
+        # 过滤start字典，只保留需要的键值
+        start = {k: v for k, v in start.items() if k in keys}
+
+        # 使用policy函数获取初始动作
+        start['action'] = policy(start, 0)
+
+        # 定义每一步处理函数step，考虑当前视野范围current_horizon
+        def step(prev, current_horizon):
+            prev = prev.copy()
+
+            # 保存当前的动作均值和标准差
+            action_mean = prev['action_mean']
+            action_std = prev['action_std']
+
+            # 使用RSSM模型进行一步预测，得到新的状态，并移除'action'键
+            state = self.rssm.img_step(prev, prev.pop('action'))
+
+            # 返回更新后的状态，包括action_mean、action_std以及通过policy函数生成的新动作
+            return {**state, 'action_mean': action_mean, 'action_std': action_std,
+                    'action': policy(prev, current_horizon + 1)}
+    else:
+        # 如果不使用规划器，则直接根据策略选择动作
+        start = {k: v for k, v in start.items() if k in keys}
+        start['action'] = policy(start)
+
+        # 定义每一步处理函数step，不考虑视野范围
+        def step(prev, _):
+            prev = prev.copy()
+
+            # 使用RSSM模型进行一步预测，得到新的状态，并移除'action'键
+            state = self.rssm.img_step(prev, prev.pop('action'))
+
+            # 返回更新后的状态，包含通过policy函数生成的新动作
+            return {**state, 'action': policy(state)}
+
+    # 使用jaxutils.scan函数应用step函数，生成轨迹traj
+    traj = jaxutils.scan(
+        step, jnp.arange(horizon), start, self.config.imag_unroll)
+
+    # 将起始状态添加到轨迹中
+    traj = {
+        k: jnp.concatenate([start[k][None], v], 0) for k, v in traj.items()}
+
+    # 计算轨迹中每一步的continuation概率
+    cont = self.heads['cont'](traj).mode()
+    traj['cont'] = jnp.concatenate([first_cont[None], cont[1:]], 0)
+
+    # 计算折扣因子，用于后续计算权重
+    discount = 1 - 1 / self.config.horizon
+
+    # 计算每个状态的权重，考虑了折扣因子和continuation概率
+    traj['weight'] = jnp.cumprod(discount * traj['cont'], 0) / discount
+
+    # 返回生成的轨迹
+    return traj
+
   def report(self, data):
     state = self.initial(len(data['is_first']))
     report = {}
@@ -692,8 +752,10 @@ class ImagSafeActorCritic(nj.Module):
     loss *= self.config.loss_scales.actor
     metrics.update(self._metrics(traj, policy, logpi, ent, adv))
     loss = loss.mean()
-    # if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior is not None:
-    if self.config.task_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior is not None:
+    # if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
+
+    # if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior not in [None, "None"]:
+    if self.config.task_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior not in [None, "None"]:
       print("-----------使用了SAC_Lag----------------")
       cost_advs = []
       total = sum(self.cost_scales[k] for k in self.cost_critics)

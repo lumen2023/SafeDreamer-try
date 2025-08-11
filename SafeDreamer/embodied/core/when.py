@@ -55,11 +55,32 @@ class Once:
 
 
 class Until:
+  """
+  该类用于表示一个“直到”条件判断器，常用于控制某些操作在达到指定步数之前持续执行。
+
+  Attributes:
+    _until (int): 指定的停止步数。当 step >= _until 时，返回 False，否则返回 True。
+  """
 
   def __init__(self, until):
+    """
+    初始化 Until 实例。
+
+    Args:
+      until (int): 指定的停止步数。如果为 None 或 0，则默认始终返回 True。
+    """
     self._until = until
 
   def __call__(self, step):
+    """
+    根据当前步数决定是否继续执行。
+
+    Args:
+      step (int): 当前步数。
+
+    Returns:
+      bool: 如果 step < _until 返回 True，否则返回 False。
+    """
     step = int(step)
     if not self._until:
       return True

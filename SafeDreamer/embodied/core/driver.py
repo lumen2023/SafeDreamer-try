@@ -23,12 +23,28 @@ class Driver:
     self.reset()
 
   def reset(self):
-    self._acts = {
-        k: convert(np.zeros((len(self._env),) + v.shape, v.dtype))
-        for k, v in self._env.act_space.items()}
-    self._acts['reset'] = np.ones(len(self._env), bool)
-    self._eps = [collections.defaultdict(list) for _ in range(len(self._env))]
-    self._state = None
+      """
+      重置环境以开始新的回合。
+
+      此方法在环境开始新的回合时调用，以初始化动作、状态和当前回合的数据存储。
+      它确保每个环境都有一组初始动作，并为数据收集和状态管理做好准备。
+      """
+      # 初始化动作字典，为每个环境中的每个动作空间创建一个零向量。
+      # 这为新回合的开始准备了动作数据结构。
+      self._acts = {
+          k: convert(np.zeros((len(self._env),) + v.shape, v.dtype))
+          for k, v in self._env.act_space.items()}
+
+      # 为所有环境设置重置信号，使用布尔值数组表示每个环境都需要重置。
+      self._acts['reset'] = np.ones(len(self._env), bool)
+
+      # 初始化或重置回合数据存储，为每个环境创建一个新的字典列表，用于存储该回合的数据。
+      self._eps = [collections.defaultdict(list) for _ in range(len(self._env))]
+
+      # 重置当前状态，表示当前没有有效的状态信息。
+      # 这是为了确保在新回合开始时，状态信息被正确地初始化。
+      self._state = None
+
 
   def on_step(self, callback):
     self._on_steps.append(callback)
@@ -36,6 +52,7 @@ class Driver:
   def on_episode(self, callback):
     self._on_episodes.append(callback)
 
+  ## 是训练过程的入口
   def __call__(self, policy, steps=0, episodes=0, lag=0.0, lag_p=0.0, lag_i=0.0, lag_d=0.0):
     step, episode = 0, 0
     while step < steps or episode < episodes:
@@ -61,6 +78,7 @@ class Driver:
     - step: 更新后的步骤数。
     - episode: 更新后的完成的episode数量。
     """
+    # print("进入Driver _step")
     # 确保所有动作的长度与环境数量一致
     assert all(len(x) == len(self._env) for x in self._acts.values())
 
@@ -74,6 +92,7 @@ class Driver:
     # print("********:  ", len(self._env))
     # 添加lagrange惩罚和控制项到观察结果中
     obs['speed'] = obs["speed"] * np.ones(len(self._env))
+    obs['action_idm'] = obs["action_idm"] * np.ones(len(self._env))
     obs['lagrange_penalty'] = lag * np.ones(len(self._env))
     obs['lagrange_p'] = lag_p * np.ones(len(self._env))
     obs['lagrange_i'] = lag_i * np.ones(len(self._env))
@@ -85,7 +104,7 @@ class Driver:
     # 确保所有观察结果的长度与环境数量一致
     assert all(len(x) == len(self._env) for x in obs.values()), obs
 
-    # 使用当前策略选择下一步的动作
+    # ！！！使用当前策略（什么策略）选择下一步的动作 ！！！ #
     acts, self._state = policy(obs, self._state, **self._kwargs)
 
     # 将选定的动作通过convert函数转换

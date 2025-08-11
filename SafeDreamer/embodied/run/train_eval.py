@@ -33,66 +33,48 @@ def train_eval(
   Returns:
     无返回值。该函数通过日志记录器记录训练和评估过程中的各种指标。
   """
+  import matplotlib.pyplot as plt
+  import wandb
 
-  # 初始化日志目录并创建目录
-  logdir = embodied.Path(args.logdir)
-  logdir.mkdirs()
-  # print('Logdir', logdir)
+  def log_episode_stepwise(ep, episode_idx):
+      steps = np.arange(len(ep['reward']))  # 假设 reward 长度为 T
 
-  # 初始化条件判断器
-  should_expl = embodied.when.Until(args.expl_until)  # 探索阶段
-  should_train = embodied.when.Ratio(args.train_ratio / args.batch_steps)  # 训练频率
-  should_log = embodied.when.Clock(args.log_every)  # 日志记录频率
-  should_save = embodied.when.Clock(args.save_every)  # 模型保存频率
-  should_eval = embodied.when.Every(args.eval_every, args.eval_initial)  # 评估频率
-  should_sync = embodied.when.Every(args.sync_every)  # 同步频率
+      fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
 
-  # 初始化计数器和其他辅助变量
-  step = logger.step
-  print(type(step))
+      # --- 图1：MoE 比例 ---
+      if 'log_moe_ratio' in ep:
+          moe_ratio = np.array(ep['log_moe_ratio'])  # shape (T, 3)
+          axes[0].plot(steps, moe_ratio[:, 0], label='pi')
+          axes[0].plot(steps, moe_ratio[:, 1], label='gaus')
+          axes[0].plot(steps, moe_ratio[:, 2], label='idm')
+          axes[0].set_ylabel('MoE Ratio')
+          axes[0].legend()
+          axes[0].grid(True)
 
-  cost_ema = CostEma(0.0)  # 成本指数移动平均
-  train_arrive_num = Arrive()  # 训练到达次数
-  eval_arrive_num = Arrive()  # 评估到达次数
-  updates = embodied.Counter()  # 更新计数器
-  metrics = embodied.Metrics()  # 指标收集器
+      # --- 图2：safe 数量 ---
+      axes[1].plot(steps, ep['log_plan_num_safe_pi'], label='safe_pi')
+      axes[1].plot(steps, ep['log_plan_num_safe_gaus'], label='safe_gaus')
+      axes[1].plot(steps, ep['log_plan_num_safe_idm'], label='safe_idm')
+      axes[1].set_ylabel('Safe Counts')
+      axes[1].legend()
+      axes[1].grid(True)
 
-  # 定义全局缓冲区用于存储每个 episode 的指标
-  episode_buffer = []
-  # 打印环境信息
-  print('Observation space:', embodied.format(train_env.obs_space), sep='\n')
-  print('Action space:', embodied.format(train_env.act_space), sep='\n')
+      # --- 图3：elite 数量 ---
+      axes[2].plot(steps, ep['log_plan_num_eli_pi'], label='eli_pi')
+      axes[2].plot(steps, ep['log_plan_num_eli_gaus'], label='eli_gaus')
+      axes[2].plot(steps, ep['log_plan_num_eli_idm'], label='eli_idm')
+      axes[2].set_ylabel('Elite Counts')
+      axes[2].set_xlabel('Step')
+      axes[2].legend()
+      axes[2].grid(True)
 
-  # 初始化计时器并包装需要计时的方法
-  timer = embodied.Timer()
-  timer.wrap('agent', agent, ['policy', 'train', 'report', 'save'])
-  timer.wrap('env', train_env, ['step'])
-  if hasattr(train_replay, '_sample'):
-    timer.wrap('replay', train_replay, ['_sample'])
+      plt.tight_layout()
 
-  # 初始化检查点，用于模型、经验回放等的保存与加载
-  checkpoint = embodied.Checkpoint(logdir / 'checkpoint.ckpt')
-  step1 = copy.deepcopy(logger.step)
-  checkpoint.step = step
-  checkpoint.agent = agent
-  checkpoint.train_replay = train_replay
-  checkpoint.eval_replay = eval_replay
-  # 如果指定了检查点路径，则加载模型等数据
-  if args.from_checkpoint:
-      checkpoint.load(args.from_checkpoint)
-      step = copy.deepcopy(step1)
-      checkpoint.step = step
-  print("加载完模型后的步数： ", step)
-  # 加载或保存检查点
-  checkpoint.load_or_save()
+      # === 上传到 wandb ===
+      wandb.log({f"episode_{episode_idx}_stepwise": wandb.Image(fig)})
+      plt.close(fig)
 
-  nonzeros = set()
-  # 定义全局缓冲区用于存储每个 episode 的指标
-
-  # 定义全局缓冲区，用于分别存储训练和评估模式下的 episode 指标
-  train_buffer = []
-  eval_buffer = []
-
+  # 数据处理
   def per_episode(ep, mode):
       """处理每个episode结束后的数据记录，每10个episode取均值再记录一个点"""
       if step < args.train_fill:
@@ -102,6 +84,7 @@ def train_eval(
       #     test_num = 10
       #     print("per_episode step: ",step)
       # 计算当前episode的指标
+
       length = len(ep['reward']) - 1
       score = float(ep['reward'].astype(np.float64).sum())
       speed_average = float(ep['speed'].astype(np.float64).sum()) / length
@@ -123,15 +106,41 @@ def train_eval(
       # 如果episode中包含成本信息，则计算成本并更新指数移动平均值
       if 'cost' in ep:
           cost = float(ep['cost'].astype(np.float64).sum())
-          # if step < args.train_fill:
-          #     cost = min(4.8, cost +0.9)
-          # else:
-          #     cost = max(8.203, cost - 8.05)
+
           metrics_dict['cost'] = cost
           cost_ema.value = cost_ema.value * 0.99 + cost * 0.01
           metrics_dict['cost_ema'] = cost_ema.value
           if step > 5000:
               lag.pid_update(cost_ema.value, step)
+
+      # step级别的记录比较
+      log_episode_stepwise(ep, episode_idx=step)  # 或者用 counter 给每个 episode 命名
+
+      # === 第一步：总和统计 ===
+      moe_ratio = np.array(ep['log_moe_ratio'])  # shape (T, 3) （）
+      num_traj = ep['log_plan_num_traj'] # num_traj 策略轨迹数目 （）
+
+      num_safe_pi = ep['log_plan_num_safe_pi'].sum()
+      num_safe_gaus = ep['log_plan_num_safe_gaus'].sum()
+      num_safe_idm = ep['log_plan_num_safe_idm'].sum()
+      num_safe_total = num_safe_pi + num_safe_gaus + num_safe_idm + 1e-6
+
+      # === 第二步：输出指标 ===
+      metrics_dict.update({
+          # 0 MoE决策轨迹来源比例
+          'num_pi': ep['log_plan_num_pi'].sum() / len(ep['reward']),     #（）
+          'num_gaus': ep['log_plan_num_gaus'].sum() / len(ep['reward']), #（）
+          'num_idm': ep['log_plan_num_idm'].sum() / len(ep['reward']),   #（）
+          # 1 安全轨迹总数
+          'num_safe': float(num_safe_total),
+          # 2 总轨迹数
+          'num_traj': float(num_traj),
+          # 3 安全轨迹数量 / 总候选轨迹数
+          # 假设每步输出固定 N 条轨迹，episode 有 T 步
+          # ep['log_plan_safe_traj'] 是每步所有安全轨迹总数
+          'safe_ratio_total': float(
+              ep['log_plan_num_safe_traj'].sum() / (len(ep['reward']) * num_traj + 1e-6)),
+      })
 
       # 根据 mode 分别存入对应的缓冲区
       if mode == 'train':
@@ -229,51 +238,7 @@ def train_eval(
               stats[f'max_{key}'] = ep[key].max(0).mean()
       metrics.add(stats, prefix=f'{mode}_stats')
 
-  # 创建训练环境的驱动器（Driver），用于与环境交互并收集数据。
-  driver_train = embodied.Driver(train_env)
-  # 在每个episode结束时调用回调函数，记录训练模式下的episode信息。
-  driver_train.on_episode(lambda ep, worker: per_episode(ep, mode='train'))
-  # 在每一步骤后调用回调函数，增加步数计数器。
-  driver_train.on_step(lambda tran, _: step.increment())
-  # 在每一步骤后将数据添加到训练回放缓冲区。
-  driver_train.on_step(train_replay.add)
-
-  # 创建评估环境的驱动器（Driver），用于与环境交互并收集数据。
-  driver_eval = embodied.Driver(eval_env)
-  # 在每一步骤后将数据添加到评估回放缓冲区。
-  driver_eval.on_step(eval_replay.add)
-  # 在每个episode结束时调用回调函数，记录评估模式下的episode信息。
-  driver_eval.on_episode(lambda ep, worker: per_episode(ep, mode='eval'))
-
-  # 创建一个随机智能体，用于在预填充阶段生成随机动作。
-  random_agent = embodied.RandomAgent(train_env.act_space)
-  print('预填充--训练--数据集。')
-  # 使用随机策略与环境交互，直到训练回放缓冲区达到指定大小。
-  while len(train_replay) < max(args.batch_steps, args.train_fill):
-  # while len(train_replay) < 32:
-    driver_train(random_agent.policy, steps=100, lag=lag.lagrange_penalty, lag_p=lag.delta_p, lag_i=lag.pid_i, lag_d=lag.pid_d)
-  print('预填充--评估--数据集。')
-  # 使用随机策略与环境交互，直到评估回放缓冲区达到指定大小。
-  while len(eval_replay) < max(args.batch_steps, args.eval_fill):
-  # while len(eval_replay) < 32:
-    driver_eval(random_agent.policy, steps=100, lag=lag.lagrange_penalty, lag_p=lag.delta_p, lag_i=lag.pid_i, lag_d=lag.pid_d)
-
-  # 将当前性能指标结果添加到日志中。
-  logger.add(metrics.result())
-  # 写入日志文件。
-  logger.write()
-
-  # 创建训练数据集，从训练回放缓冲区中获取数据。
-  dataset_train = agent.dataset(train_replay.dataset)
-  # 创建评估数据集，从评估回放缓冲区中获取数据。
-  dataset_eval = agent.dataset(eval_replay.dataset)
-
-  # 初始化状态列表，以便在训练步骤函数中可写入。
-  state = [None]  # 状态列表，初始值为 None
-  # 初始化批次列表，以便在训练步骤函数中可写入。
-  batch = [None]  # 批次列表，初始值为 None
-
-
+  # 执行训练步骤
   def train_step(tran, worker):
     """执行训练步骤。
 
@@ -324,9 +289,114 @@ def train_eval(
 
         # 写入日志并计算FPS
         logger.write(fps=True)
+  print("\n\n\n  == train_eval  === \n\n\n")
+## 一、初始化日志目录并创建目录
+  logdir = embodied.Path(args.logdir)
+  logdir.mkdirs()
+  # print('Logdir', logdir)
+
+  # 初始化条件判断器
+  should_expl = embodied.when.Until(args.expl_until)  # 探索阶段
+  should_train = embodied.when.Ratio(args.train_ratio / args.batch_steps)  # 训练频率
+  should_log = embodied.when.Clock(args.log_every)  # 日志记录频率
+  should_save = embodied.when.Clock(args.save_every)  # 模型保存频率
+  should_eval = embodied.when.Every(args.eval_every, args.eval_initial)  # 评估频率
+  should_sync = embodied.when.Every(args.sync_every)  # 同步频率
+
+  # 初始化计数器和其他辅助变量
+  step = logger.step
+  print(type(step))
+
+  cost_ema = CostEma(0.0)  # 成本指数移动平均
+  train_arrive_num = Arrive()  # 训练到达次数
+  eval_arrive_num = Arrive()  # 评估到达次数
+  updates = embodied.Counter()  # 更新计数器
+  metrics = embodied.Metrics()  # 指标收集器
+
+  # 定义全局缓冲区用于存储每个 episode 的指标
+  episode_buffer = []
+  # 打印环境信息
+  # print('Observation space:', embodied.format(train_env.obs_space), sep='\n')
+  # print('Action space:', embodied.format(train_env.act_space), sep='\n')
+
+  # 初始化计时器并包装需要计时的方法
+  timer = embodied.Timer()
+  timer.wrap('agent', agent, ['policy', 'train', 'report', 'save'])
+  timer.wrap('env', train_env, ['step'])
+  if hasattr(train_replay, '_sample'):
+    timer.wrap('replay', train_replay, ['_sample'])
+
+  # 初始化检查点，用于模型、经验回放等的保存与加载
+  checkpoint = embodied.Checkpoint(logdir / 'checkpoint.ckpt')
+  # step1 = copy.deepcopy(logger.step)
+  checkpoint.step = step
+  checkpoint.agent = agent
+  checkpoint.train_replay = train_replay
+  checkpoint.eval_replay = eval_replay
 
 
-  # 触发训练步骤
+## 二、如果指定了检查点路径，则加载模型等数据
+  if args.from_checkpoint:
+      print("\n加载模型了\n")
+      checkpoint.load(args.from_checkpoint)
+      # step = copy.deepcopy(step1)
+      checkpoint.step = step
+  print("加载完模型后的步数： ", step)
+  # 加载或保存检查点
+  checkpoint.load_or_save()
+
+  nonzeros = set()
+  # 定义全局缓冲区用于存储每个 episode 的指标
+
+  # 定义全局缓冲区，用于分别存储训练和评估模式下的 episode 指标
+  train_buffer = []
+  eval_buffer = []
+
+## 三、 创建训练环境的驱动器（Driver），用于与环境交互并收集数据。
+  driver_train = embodied.Driver(train_env)
+  # 在每个episode结束时调用回调函数，记录训练模式下的episode信息。
+  driver_train.on_episode(lambda ep, worker: per_episode(ep, mode='train'))
+  # 在每一步骤后调用回调函数，增加步数计数器。
+  driver_train.on_step(lambda tran, _: step.increment())
+  # 在每一步骤后将数据添加到训练回放缓冲区。
+  driver_train.on_step(train_replay.add)
+
+  # 创建评估环境的驱动器（Driver），用于与环境交互并收集数据。
+  driver_eval = embodied.Driver(eval_env)
+  # 在每一步骤后将数据添加到评估回放缓冲区。
+  driver_eval.on_step(eval_replay.add)
+  # 在每个episode结束时调用回调函数，记录评估模式下的episode信息。
+  driver_eval.on_episode(lambda ep, worker: per_episode(ep, mode='eval'))
+
+## 四、！！！填充！！！ 4.1创建一个随机智能体，用于在预填充阶段生成随机动作。
+  random_agent = embodied.RandomAgent(train_env.act_space)
+  print('预填充--训练--数据集。')
+  # 使用随机策略与环境交互，直到训练回放缓冲区达到指定大小。
+  # while len(train_replay) < max(args.batch_steps, args.train_fill):
+  while len(train_replay) < 32:
+    driver_train(random_agent.policy, steps=100, lag=lag.lagrange_penalty, lag_p=lag.delta_p, lag_i=lag.pid_i, lag_d=lag.pid_d)
+  print('预填充--评估--数据集。')
+  # 使用随机策略与环境交互，直到评估回放缓冲区达到指定大小。
+  # while len(eval_replay) < max(args.batch_steps, args.eval_fill):
+  while len(eval_replay) < 32:
+    driver_eval(random_agent.policy, steps=100, lag=lag.lagrange_penalty, lag_p=lag.delta_p, lag_i=lag.pid_i, lag_d=lag.pid_d)
+
+  # 将当前性能指标结果添加到日志中。
+  logger.add(metrics.result())
+  # 写入日志文件。
+  logger.write()
+
+  # 创建训练数据集，从训练回放缓冲区中获取数据。
+  dataset_train = agent.dataset(train_replay.dataset)
+  # 创建评估数据集，从评估回放缓冲区中获取数据。
+  dataset_eval = agent.dataset(eval_replay.dataset)
+
+  # 初始化状态列表，以便在训练步骤函数中可写入。
+  state = [None]  # 状态列表，初始值为 None
+  # 初始化批次列表，以便在训练步骤函数中可写入。
+  batch = [None]  # 批次列表，初始值为 None
+
+## 五、 触发训练步骤
   driver_train.on_step(train_step)
 
 
@@ -344,7 +414,9 @@ def train_eval(
   policy_eval = lambda *args: agent.policy(*args, mode='eval')
   # 主训练循环
   while step < args.steps:
-      print('\n开始训练Starting training at step', int(step))
+      print('\n主循环-----开始训练Starting training at step', int(step))
+      if should_expl(step):
+          print('====！！！探索！！！====', int(step))
       # 如果需要评估，则执行评估
       if should_eval(step):
           print('Starting evaluation at step', int(step))
@@ -358,5 +430,4 @@ def train_eval(
   # 写入日志
   logger.write()
   logger.write()
-
 

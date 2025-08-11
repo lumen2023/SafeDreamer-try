@@ -48,12 +48,13 @@ defaults:
     log_keys_mean: 'log_entropy|log_plan_action_mean|log_plan_action_std|log_plan_num_safe_traj|log_plan_ret|log_plan_cost|log_plan_penalty|log_plan_lagrange_multiplier|log_plan_penalty_multiplier|log_lagrange_penalty|log_lagrange_p|log_lagrange_i|log_lagrange_d'
     log_keys_max: 'log_entropy|log_plan_action_mean|log_plan_action_std|log_plan_num_safe_traj|log_plan_ret|log_plan_cost|log_plan_penalty|log_plan_lagrange_multiplier|log_plan_penalty_multiplier|log_lagrange_penalty|log_lagrange_p|log_lagrange_i|log_lagrange_d'
 #    from_checkpoint: '/home/lumen/@Code/SafeDreamer/SafeDreamer/logdir_osrp_lyz_0222_costlimit30/20250226-140808_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/checkpoint.ckpt'
+#    from_checkpoint: '/home/lumen/Desktop/log/logdir_osrp_lyz_0216_costlimit30/20250222-215749_osrp_vector_highway-fast_New-gym_safe-highway-fast-v0_0/checkpoint.ckpt'
     from_checkpoint: ''
     sync_every: 10
     # actor_addr: 'tcp://127.0.0.1:5551'
     actor_addr: 'ipc:///tmp/5551'
-#    actor_batch: 32
-    actor_batch: 64
+    actor_batch: 32
+#    actor_batch: 64
 
   envs: {amount: 1, parallel: process, length: 0, reset: True, restart: True, discretize: 0, checks: False}
   wrapper: {length: 0, reset: True, discretize: 0, checks: False}
@@ -71,9 +72,10 @@ defaults:
   # Agent
   task_behavior: Greedy
   expl_behavior: None
-#  batch_size: 32
-  batch_size: 64
-  batch_length: 64
+  batch_size: 32
+#  batch_size: 64
+#  batch_length: 64
+  batch_length: 32
   data_loaders: 8
 
   # World Model
@@ -102,7 +104,7 @@ defaults:
   actor_grad_cont: backprop
   critic_type: vfunction
 #  imag_horizon: 15
-  imag_horizon: 10
+  imag_horizon: 5
   imag_unroll: False
   horizon: 333
 #  penalty_multiplier_init: 5e-9
@@ -122,7 +124,7 @@ defaults:
   retnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
   costnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
 #  planner: {horizon: 15, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
-  planner: {horizon: 3, num_samples: 800, mixture_coef: 0.08, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
+  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, mixture_coef_pi: 0.1, mixture_coef_gaus: 0.8, mixture_coef_idm: 0.1, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 10, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 
@@ -143,7 +145,8 @@ osrp_vector_highway-intersection:
 #  expl_behavior: PIDPlanner
   use_cost: True
   cost_weight: 1.0
-  cost_limit: 5.0
+  cost_limit: 10.0
+  cost_limit_phys: 5
   # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
 #  task: safetygymcoor_SafetyPointGoal-v0 safe-intersection-v0
 #  task: New-gym_safe-highway-fast-v0
@@ -164,8 +167,8 @@ osrp_vector_highway-intersection:
   .*\.cnn_depth: 32
   .*\.layers: 2
   .*\.units: 512
-  .*\.mlp_units: 1024
-  .*\.mlp_layers: 5
+  .*\.mlp_units: 512
+  .*\.mlp_layers: 3
   rssm: {stoch: 16, classes: 16}
 
   encoder: {mlp_keys: '.*', cnn_keys: '$^'}
@@ -178,7 +181,7 @@ osrp_vector_highway-fast:
   expl_behavior: CCEPlanner
   use_cost: True
   cost_weight: 1
-  cost_limit: 20
+  cost_limit: 12
   cost_limit_phys: 5
   # task: safetygymmujoco_SafetyHalfCheetahVelocity-v1
 #  task: safetygymcoor_SafetyPointGoal-v0 safe-intersection-v0
@@ -194,15 +197,15 @@ osrp_vector_highway-fast:
     script: train_eval
 #    steps: 4e5 #7
     steps: 5e7 #7
-    eval_every: 1e1 #4
+    eval_every: 1e4 #4
     eval_initial: False
     eval_eps: 1
   rssm.deter: 512
   .*\.cnn_depth: 32
   .*\.layers: 2
   .*\.units: 512
-  .*\.mlp_units: 1024
-  .*\.mlp_layers: 5
+  .*\.mlp_units: 512
+  .*\.mlp_layers: 3
   rssm: {stoch: 16, classes: 16}
 
   encoder: {mlp_keys: '.*', cnn_keys: '$^'}

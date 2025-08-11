@@ -101,25 +101,59 @@ class RSSM(nj.Module):
     return cast(post), cast(prior)
 
   def img_step(self, prev_state, prev_action):
+    """
+    根据前一个状态和动作预测下一个状态的函数。
+
+    参数:
+    - prev_state: 前一个状态，包含确定性和随机性部分。
+    - prev_action: 前一个动作，用于预测当前状态。
+
+    返回:
+    - cast(prior): 转换后的先验状态分布。
+    """
+    # 提取前一个状态的随机部分
     prev_stoch = prev_state['stoch']
+    # 对前一个动作进行类型转换
     prev_action = cast(prev_action)
+
+    # 如果设置了动作裁剪阈值，则对动作进行裁剪
     if self._action_clip > 0.0:
       prev_action *= sg(self._action_clip / jnp.maximum(
           self._action_clip, jnp.abs(prev_action)))
+
+    # 如果存在类别，则将随机状态重塑为相应的形状
     if self._classes:
       shape = prev_stoch.shape[:-2] + (self._stoch * self._classes,)
       prev_stoch = prev_stoch.reshape(shape)
-    if len(prev_action.shape) > len(prev_stoch.shape):  # 2D actions.
+
+    # 如果动作是二维的，则将其重塑为一维
+    if len(prev_action.shape) > len(prev_stoch.shape):
       shape = prev_action.shape[:-2] + (np.prod(prev_action.shape[-2:]),)
       prev_action = prev_action.reshape(shape)
+
+    # 将前一个随机状态和动作拼接起来
     x = jnp.concatenate([prev_stoch, prev_action], -1)
+
+    # 通过线性层处理拼接后的向量
     x = self.get('img_in', Linear, **self._kw)(x)
+
+    # 通过GRU单元处理输入，得到新的确定性状态
     x, deter = self._gru(x, prev_state['deter'])
+
+    # 再次通过线性层处理输出
     x = self.get('img_out', Linear, **self._kw)(x)
+
+    # 计算状态统计量
     stats = self._stats('img_stats', x)
+
+    # 根据统计量得到分布，并从中采样得到新的随机状态
     dist = self.get_dist(stats)
     stoch = dist.sample(seed=nj.rng())
+
+    # 构造先验状态分布
     prior = {'stoch': stoch, 'deter': deter, **stats}
+
+    # 返回转换后的先验状态分布
     return cast(prior)
 
   def get_stoch(self, deter):

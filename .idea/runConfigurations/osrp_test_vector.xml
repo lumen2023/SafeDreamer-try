@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="osrp_test_vector" type="PythonConfigurationType" factoryName="Python" show_console_on_std_err="true" show_console_on_std_out="true">
+  <configuration default="false" name="osrp_test_vector" type="PythonConfigurationType" factoryName="Python" folderName="baseline" show_console_on_std_err="true" show_console_on_std_out="true">
     <module name="SafeDreamer" />
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />
