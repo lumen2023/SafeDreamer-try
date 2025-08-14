@@ -278,7 +278,7 @@ class WandBOutput:
         project="Test-EchoDreamer-highway-go",
         # project="EchoDreamer-intersection-go",
         # name=f"PID-Planner_{datetime.now().strftime('%d-%H%M')}",  # 只保留日期+小时
-        name=f"1000-20%-idm50-CCEPlanner_{datetime.now().strftime('%m%d-%H%M')}",  # 只保留日期+小时
+        name=f"horizon: 5, num_samples: 1000, mixture_coef: 0.1, mixture_coef_pi: 0.5, mixture_coef_gaus: 0.4, mixture_coef_idm: 0.1, num_elites: 50_{datetime.now().strftime('%m%d-%H%M')}",  # 只保留日期+小时
         # name=f"CCEPlanner_{datetime.now().strftime('%m%d-%H%M')}",  # 只保留日期+小时
         id=logdir.name,
         # name=logdir.name,

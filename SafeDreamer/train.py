@@ -23,6 +23,8 @@ from embodied import wrappers
 import datetime
 import faulthandler
 faulthandler.enable()
+import matplotlib
+matplotlib.use('Agg')
 
 
 def main(argv=None):

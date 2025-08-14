@@ -124,7 +124,7 @@ defaults:
   retnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
   costnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
 #  planner: {horizon: 15, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
-  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, mixture_coef_pi: 0.1, mixture_coef_gaus: 0.8, mixture_coef_idm: 0.1, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
+  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, mixture_coef_pi: 0.5, mixture_coef_gaus: 0.4, mixture_coef_idm: 0.1, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 10, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 
@@ -196,8 +196,8 @@ osrp_vector_highway-fast:
   run:
     script: train_eval
 #    steps: 4e5 #7
-    steps: 5e7 #7
-    eval_every: 1e1 #4
+    steps: 1e6 #7
+    eval_every: 1e4 #4
     eval_initial: False
     eval_eps: 1
   rssm.deter: 512

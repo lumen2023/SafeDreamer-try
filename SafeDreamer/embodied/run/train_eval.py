@@ -77,8 +77,11 @@ def train_eval(
   # 数据处理
   def per_episode(ep, mode):
       """处理每个episode结束后的数据记录，每10个episode取均值再记录一个点"""
-      if step < args.train_fill:
+      if step <= args.train_fill:
         return
+      if 'log_plan_num_safe_pi' not in ep:
+          return  # 这个episode没记录安全轨迹指标，直接跳过
+
       test_num = 20
       # if step < args.train_fill:
       #     test_num = 10
@@ -112,9 +115,6 @@ def train_eval(
           metrics_dict['cost_ema'] = cost_ema.value
           if step > 5000:
               lag.pid_update(cost_ema.value, step)
-
-      # step级别的记录比较
-      log_episode_stepwise(ep, episode_idx=step)  # 或者用 counter 给每个 episode 命名
 
       # === 第一步：总和/均值统计（全部转标量） ===
       T = int(len(ep['reward']))
@@ -174,6 +174,10 @@ def train_eval(
               logger.add({
                   'arrive_rate': arrive_rate,
               }, prefix=('episode' if mode == 'train' else f'{mode}_episode'))
+
+              # step级别的记录比较
+              log_episode_stepwise(ep, episode_idx=step)  # 或者用 counter 给每个 episode 命名
+
               # 打印训练模式下10个episode的平均到达率
               print(f'train 200 episodes has average arrive rate {arrive_rate:.2f}.')
 
@@ -385,13 +389,13 @@ def train_eval(
   random_agent = embodied.RandomAgent(train_env.act_space)
   print('预填充--训练--数据集。')
   # 使用随机策略与环境交互，直到训练回放缓冲区达到指定大小。
-  # while len(train_replay) < max(args.batch_steps, args.train_fill):
-  while len(train_replay) < 32:
+  while len(train_replay) < max(args.batch_steps, args.train_fill):
+  # while len(train_replay) < 32:
     driver_train(random_agent.policy, steps=100, lag=lag.lagrange_penalty, lag_p=lag.delta_p, lag_i=lag.pid_i, lag_d=lag.pid_d)
   print('预填充--评估--数据集。')
   # 使用随机策略与环境交互，直到评估回放缓冲区达到指定大小。
-  # while len(eval_replay) < max(args.batch_steps, args.eval_fill):
-  while len(eval_replay) < 32:
+  while len(eval_replay) < max(args.batch_steps, args.eval_fill):
+  # while len(eval_replay) < 32:
     driver_eval(random_agent.policy, steps=100, lag=lag.lagrange_penalty, lag_p=lag.delta_p, lag_i=lag.pid_i, lag_d=lag.pid_d)
 
   # 将当前性能指标结果添加到日志中。

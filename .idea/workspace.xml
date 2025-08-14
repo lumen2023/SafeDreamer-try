@@ -6,12 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="7be36dc6-23d4-4ce0-8e46-b51d930d05fd" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/behaviors.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/behaviors.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/configs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/configs.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/core/logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/core/logger.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/highway_env" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/highway_env/envs/common/abstract.py" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env/envs/common/abstract.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/highway_env/envs/safe_highway_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env/envs/safe_highway_env.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/highway_env/envs/safe_intersection_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env/envs/safe_intersection_env.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/train.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -232,24 +231,9 @@
           <option name="timeStamp" value="9" />
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
-          <line>493</line>
-          <option name="timeStamp" value="11" />
-        </line-breakpoint>
-        <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
-          <line>486</line>
-          <option name="timeStamp" value="13" />
-        </line-breakpoint>
-        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/nets.py</url>
           <line>68</line>
           <option name="timeStamp" value="15" />
-        </line-breakpoint>
-        <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/test_env.py</url>
-          <line>20</line>
-          <option name="timeStamp" value="23" />
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
@@ -263,7 +247,7 @@
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py</url>
-          <line>425</line>
+          <line>442</line>
           <option name="timeStamp" value="37" />
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
@@ -273,7 +257,7 @@
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
-          <line>715</line>
+          <line>872</line>
           <option name="timeStamp" value="64" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -283,8 +267,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
-          <line>527</line>
+          <line>684</line>
           <option name="timeStamp" value="69" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test_env.py</url>
+          <line>20</line>
+          <option name="timeStamp" value="70" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

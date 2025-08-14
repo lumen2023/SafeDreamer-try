@@ -409,18 +409,63 @@ class CCEPlanner(nj.Module):
 
 
   def true_function(self, ret, cost, traj_pi_gaus):
+    """
+    计算真实函数的返回值和动作序列
+
+    参数:
+        ret: 返回值参数（未在函数中使用）
+        cost: 成本值，将被取反作为第一个返回值
+        traj_pi_gaus: 轨迹策略高斯分布字典，包含'action'键
+
+    返回:
+        tuple: 包含两个元素的元组
+            - 负的成本值
+            - traj_pi_gaus字典中的动作序列
+    """
     return -cost, traj_pi_gaus['action']
 
   def false_function(self, ret, cost, traj_pi_gaus):
-    mask = cost < self.cost_limit
+    """
+    根据成本限制筛选安全的精英样本并返回对应的结果和轨迹动作。
+
+    参数:
+        ret: 包含回报值的数组
+        cost: 包含成本值的数组
+        traj_pi_gaus: 包含轨迹动作信息的字典，其中'action'键对应动作数组
+
+    返回:
+        tuple: 包含两个元素的元组
+            - 筛选后的回报值数组
+            - 筛选后的轨迹动作数组
+    """
+    # 根据成本限制创建掩码，标记成本低于限制的样本
+    mask = cost < self.config.cost_limit_phys  # 按照物理信息限制来进行约束
+    # 获取满足成本限制的样本索引
     safe_elite_idxs = jnp.nonzero(lax.convert_element_type(mask, jnp.int32), size=mask.size)[0]
+    # 返回筛选后的回报值和对应的动作轨迹
     return ret[safe_elite_idxs], traj_pi_gaus['action'][:,safe_elite_idxs,:]
 
   def func_with_if_else(self, num_safe_traj, ret, cost, traj_pi_gaus):
-    elite_value, elite_actions = lax.cond(num_safe_traj < self.num_elites,lambda ret, cost, traj_pi_gaus: self.true_function(ret, cost, traj_pi_gaus), lambda ret, cost, traj_pi_gaus: self.false_function(ret, cost, traj_pi_gaus), ret, cost, traj_pi_gaus)
+    """
+    根据安全轨迹数量条件选择执行不同的函数来计算精英值和精英动作。
+
+    参数:
+        num_safe_traj: 安全轨迹的数量
+        ret: 返回值参数
+        cost: 成本参数
+        traj_pi_gaus: 轨迹策略高斯分布参数
+
+    返回:
+        tuple: 包含精英值和精英动作的元组 (elite_value, elite_actions)
+    """
+    # 根据安全轨迹数量是否小于精英数量阈值，条件性地执行不同的函数
+    elite_value, elite_actions = lax.cond(num_safe_traj < self.num_elites,
+                                          lambda ret, cost, traj_pi_gaus: self.true_function(ret, cost, traj_pi_gaus),
+                                          lambda ret, cost, traj_pi_gaus: self.false_function(ret, cost, traj_pi_gaus),
+                                          ret, cost, traj_pi_gaus)
     return elite_value, elite_actions
 
-  def new_policy(self, latent, state):
+  def MoE_policy(self, latent, state, obs = None):
     """
     使用 TD-MPC 推理规划下一步动作。
 
@@ -431,99 +476,210 @@ class CCEPlanner(nj.Module):
     返回值:
     - 一个包含动作及其相关统计信息的字典，以及更新后的动作均值和标准差。
     """
-    print("进入CCEPlanner \nTD-MPC 推理规划下一步动作")
-    # 计算从策略中采样的轨迹数量
-    num_pi_trajs = int(self.mixture_coef * self.num_samples)
+
+
+    ## 零、初始化参数
+    idm_action = jnp.asarray(obs['action_idm'], dtype=jnp.float32).squeeze(0)  # shape (1, act_dim)
+
+    # 定义IDM噪声水平 (可以根据需要调整，建议使用较小的值，如0.01)
+    idm_noise_scale = 0.05  # 高斯噪声的标准差
+    std = self.init_std * jnp.ones((self.horizon + 1,) + self.act_space.shape)
+
+    num_pi_trajs = int(self.mixture_coef_pi * self.num_samples)
+    num_gaus_trajs = int(self.mixture_coef_gaus * self.num_samples)
+    num_idm_trajs = int(self.mixture_coef_idm * self.num_samples)
+    num_trajs = self.num_samples
+    moe_ratio_vec = jnp.array([self.mixture_coef_pi,
+                               self.mixture_coef_gaus,
+                               self.mixture_coef_idm], dtype=jnp.float32)  # (3,)   pi / gaus / idm  暂时使用
+
+    if 'action_mean' in state.keys():
+      # 如果存在动作均值，则滚动更新均值
+      mean = jnp.roll(state['action_mean'], -1, axis=0)
+      mean = mean.at[-1].set(mean[-2])
+    else:
+      # 否则初始化为零
+      mean = jnp.zeros((self.horizon + 1,) + self.act_space.shape)
+
+    def summarize_and_log_trajectory_statistics(traj_pi, traj_gaus, traj_idm, traj_cost, elite_idxs, config):
+      import jax.numpy as jnp
+
+      # 构造来源数组：0 = pi, 1 = gaus, 2 = idm
+      src_pi = jnp.zeros(traj_pi['action'].shape[1], dtype=jnp.int32)
+      src_gaus = jnp.ones(traj_gaus['action'].shape[1], dtype=jnp.int32)
+      src_idm = 2 * jnp.ones(traj_idm['action'].shape[1], dtype=jnp.int32)
+      src_all = jnp.concatenate([src_pi, src_gaus, src_idm], axis=0)  # (K_total,)
+
+      # 安全轨迹掩码
+      safe_mask = traj_cost < config.cost_limit_phys
+      # 精英轨迹掩码（构造和 traj_cost 同维度的 0 向量，将 elite_idxs 位置设为 1）
+      elite_mask = jnp.zeros_like(safe_mask).at[elite_idxs].set(1)
+
+      def count(mask, val):
+        return jnp.sum(jnp.logical_and(mask, src_all == val))
+
+      # 统计信息 - 保持为JAX数组，不转换为Python整数
+      metrics_iter = {
+        'num_safe_pi': count(safe_mask, 0),
+        'num_safe_gaus': count(safe_mask, 1),
+        'num_safe_idm': count(safe_mask, 2),
+        'num_eli_pi': count(elite_mask, 0),
+        'num_eli_gaus': count(elite_mask, 1),
+        'num_eli_idm': count(elite_mask, 2),
+      }
+
+      # from jax import debug
+      #
+      # # 构建安全轨迹统计信息字符串
+      # safe_msg = "安全轨迹数量: "
+      # safe_msg += "pi={num_safe_pi}、gaus={num_safe_gaus}、idm={num_safe_idm}"
+      #
+      # # 构建精英轨迹统计信息字符串
+      # elite_msg = "精英轨迹数量: "
+      # elite_msg += "pi={num_eli_pi}、gaus={num_eli_gaus}、idm={num_eli_idm}"
+      #
+      # # 打印安全轨迹统计信息（不换行）
+      # debug.print(safe_msg,
+      #             num_safe_pi=metrics_iter['num_safe_pi'],
+      #             num_safe_gaus=metrics_iter['num_safe_gaus'],
+      #             num_safe_idm=metrics_iter['num_safe_idm'])
+      #
+      # # 打印精英轨迹统计信息（添加换行符）
+      # debug.print(elite_msg + "\n",
+      #             num_eli_pi=metrics_iter['num_eli_pi'],
+      #             num_eli_gaus=metrics_iter['num_eli_gaus'],
+      #             num_eli_idm=metrics_iter['num_eli_idm'])
+
+      return metrics_iter
+
+    ## 一、计算从ac策略中采样的轨迹数量
 
     if num_pi_trajs > 0:
-        # 重复潜在状态以生成多个轨迹
-        latent_pi = {k: jnp.repeat(v, num_pi_trajs, 0) for k, v in latent.items()}
-        latent_pi['is_terminal'] = jnp.zeros(latent_pi['deter'].shape[0])
+      # 重复潜在状态以生成多个轨迹
+      latent_pi = {k: jnp.repeat(v, num_pi_trajs, 0) for k, v in latent.items()}
+      latent_pi['is_terminal'] = jnp.zeros(latent_pi['deter'].shape[0])
 
-        # 定义策略函数并想象未来的轨迹
-        policy = lambda s: self.ac.actor(sg(s)).sample(seed=nj.rng())
-        traj_pi = self.wm.imagine(policy, latent_pi, self.horizon)
+      # 定义策略函数并想象未来的轨迹
+      policy = lambda s: self.ac.actor(sg(s)).sample(seed=nj.rng())
+      traj_pi = self.wm.imagine(policy, latent_pi, self.horizon) # 使用sac_lag策略生成轨迹
 
-    # 初始化动作的标准差
-    std_expl = self.init_std * jnp.ones((self.horizon + 1,) + self.act_space.shape)
+  ## 二、基于IDM策略的轨迹数量  把当前 latent 复制 1 次（num_idm_trajs = 1）
+    latent_idm = {k: jnp.repeat(v, num_idm_trajs, 0) for k, v in latent.items()}
+    latent_idm['is_terminal'] = jnp.zeros(latent_idm['deter'].shape[0])
+    # 定义恒定 IDM policy：忽略 latent，仅按 horizon 返回同一动作
+    def idm_policy_old(_: dict, __: int = None):
+      # 返回 shape = (num_idm_trajs, act_dim)
+      return jnp.repeat(idm_action[None, :], num_idm_trajs, axis=0)
 
-    if 'action_mean_expl' in state.keys():
-        # 如果存在动作均值，则滚动更新均值
-        mean_expl = jnp.roll(state['action_mean_expl'], -1, axis=0)
-        mean_expl = mean_expl.at[-1].set(mean_expl[-2])
-    else:
-        # 否则初始化为零
-        mean_expl = jnp.zeros((self.horizon + 1,) + self.act_space.shape)
+    # 定义带噪声的IDM策略
+    def idm_policy(_: dict, __: int = None):
+      # 基础IDM动作 (shape: (num_idm_trajs, act_dim))
+      base_actions = jnp.repeat(idm_action[None, :], num_idm_trajs, axis=0)
 
+      # 生成与动作维度匹配的高斯噪声
+      # 使用horizon作为随机数生成的子键，确保每个时间步的噪声不同
+      noise_key = nj.rng()  # 获取随机数生成器
+      noise = idm_noise_scale * jax.random.normal(noise_key, shape=base_actions.shape)
+
+      # 应用噪声并裁剪到动作空间范围
+      noisy_actions = jnp.clip(base_actions + noise, -1.0, 1.0)
+
+      return noisy_actions
+
+    # 生成完整 IDM 轨迹（T+1, 1, …）
+    traj_idm = self.wm.imagine(idm_policy, latent_idm, self.horizon)
+
+    # 三、迭代 self.iterations 次的 CCE 主循环
     for i in range(self.iterations):
-        # 重复潜在状态以生成高斯分布的轨迹
-        latent_gaus = {k: jnp.repeat(v, self.num_samples, 0) for k, v in latent.items()}
-        latent_gaus['is_terminal'] = jnp.zeros(latent_gaus['deter'].shape[0])
-        latent_gaus['action_mean_expl'] = mean_expl
-        latent_gaus['action_std_expl'] = std_expl
+      # 重复潜在状态以生成高斯分布的轨迹
+      latent_gaus = {k: jnp.repeat(v, num_gaus_trajs, 0) for k, v in latent.items()}
+      latent_gaus['is_terminal'] = jnp.zeros(latent_gaus['deter'].shape[0])
+      latent_gaus['action_mean'] = mean
+      latent_gaus['action_std'] = std
 
-        # 定义高斯分布的策略函数
-        def policy(s, horizon):
-            current_mean = s['action_mean_expl'][horizon]
-            current_std = s['action_std_expl'][horizon]
-            return jnp.clip(current_mean + current_std * jax.random.normal(nj.rng(), (self.num_samples,) + self.act_space.shape), -1, 1)
+      # 定义高斯分布的策略函数
+      def policy(s, horizon):
+        current_mean = s['action_mean'][horizon]
+        current_std = s['action_std'][horizon]
+        return jnp.clip(
+          current_mean + current_std * jax.random.normal(nj.rng(), (num_gaus_trajs,) + self.act_space.shape), -1, 1)
 
-        # 想象未来的轨迹并使用规划器
-        traj_gaus = self.wm.imagine(policy, latent_gaus, self.horizon, use_planner=True)
+      # 想象未来的轨迹并使用规划器
+      traj_gaus = self.wm.imagine(policy, latent_gaus, self.horizon, use_planner=True)
 
-        if num_pi_trajs > 0:
-            # 如果有策略轨迹，将策略轨迹和高斯轨迹合并
-            traj_pi_gaus = {}
-            for k, v in traj_pi.items():
-                traj_pi_gaus[k] = jnp.concatenate([traj_pi[k], traj_gaus[k]], axis=1)
-        else:
-            traj_pi_gaus = traj_gaus
+      if num_pi_trajs > 0:
+        # 如果有策略轨迹，将策略轨迹和高斯轨迹合并
+        traj_pi_gaus = {}
+        for k, v in traj_pi.items():
+          traj_pi_gaus[k] = jnp.concatenate([traj_pi[k], traj_gaus[k], traj_idm[k]], axis=1)
+      else:
+        traj_pi_gaus = traj_gaus
 
-        # 计算奖励、回报和价值
-        rew, ret, value = self.ac.critics['extr'].score(traj_pi_gaus)
-        traj_rew = ret[0]
+      # 计算奖励、回报和价值
+      rew, ret, value = self.ac.critics['extr'].score(traj_pi_gaus)
+      traj_rew = ret[0]
 
-        if self.config.use_cost:
-            # 如果使用成本计算，评估成本并调整成本
-            cost, cost_ret, cost_value = self.ac.cost_critics['extr'].score(traj_pi_gaus)
-            # traj_cost = cost.sum(0) * (2 / self.horizon)
-            traj_cost = cost.sum(0)
-        else:
-            # 否则从重建中计算成本
-            recon = self.wm.heads['decoder'](traj_pi_gaus)
-            # print("Debug: recon keys ->", recon.keys())  # 打印 recon 的键
-            cost = self.cost_from_recon(recon['observation'].mode())
-            # cost = self.cost_from_recon(recon['image'].mode())
-            traj_cost = cost.sum(0)
+      if self.config.use_cost:
+        # 如果使用成本计算，评估成本并调整成本
+        cost, cost_ret, cost_value = self.ac.cost_critics['extr'].score(traj_pi_gaus)
+        # traj_cost = cost.sum(0) * (2 / self.horizon)
+        traj_cost = cost.sum(0)
 
-        # 计算安全轨迹的数量
-        num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost < self.cost_limit, jnp.int32))
+      else:
+        # 否则从重建中计算成本
+        recon = self.wm.heads['decoder'](traj_pi_gaus)
+        # print("Debug: recon keys ->", recon.keys())  # 打印 recon 的键
+        cost = self.cost_from_recon(recon['observation'].mode())
+        # cost = self.cost_from_recon(recon['image'].mode())
+        traj_cost = cost.sum(0)
 
-        # 根据安全轨迹选择精英动作
-        elite_value, elite_actions = self.func_with_if_else(num_safe_traj, traj_rew, traj_cost, traj_pi_gaus)
+      # 计算安全轨迹的数量
+      num_safe_traj = jnp.sum(lax.convert_element_type(traj_cost < self.config.cost_limit_phys, jnp.int32))
 
-        # 获取精英动作的索引并更新均值和标准差
-        elite_idxs = jax.lax.top_k(elite_value, self.num_elites)[1]
-        elite_value, elite_actions = elite_value[elite_idxs], elite_actions[:, elite_idxs, :]
-        _mean = elite_actions.mean(axis=1)
-        _std = elite_actions.std(axis=1)
-        mean_expl = self.momentum * mean_expl + (1 - self.momentum) * _mean
-        std_expl  = self.momentum * std_expl + (1 - self.momentum) * _std
+      # 根据安全轨迹选择精英动作
+      elite_value, elite_actions = self.func_with_if_else(num_safe_traj, traj_rew, traj_cost, traj_pi_gaus)
 
-    best_idx = elite_value.argmax()  # 选择奖励最高的轨迹索引
-    a_best = elite_actions[0, best_idx, :]  # 直接使用最优轨迹的第一步动作
-    mean = a_best.mean(axis=0)  # 计算最优轨迹的均值
-    std = a_best.std(axis=0)  # 计算最优轨迹的标准差
-    a = mean
+      # 获取精英动作的索引并更新均值和标准差
+      elite_idxs = jax.lax.top_k(elite_value, self.num_elites)[1]
+      elite_value, elite_actions = elite_value[elite_idxs], elite_actions[:, elite_idxs, :]
+      _mean = elite_actions.mean(axis=1)
+      _std = elite_actions.std(axis=1)
+      mean, std = self.momentum * mean + (1 - self.momentum) * _mean, _std
+
+    metrics_iter = summarize_and_log_trajectory_statistics(
+      traj_pi=traj_pi, traj_gaus=traj_gaus, traj_idm=traj_idm,
+      traj_cost=traj_cost, elite_idxs=elite_idxs, config=self.config
+    )
+
+    # 获取最终的动作并返回结果
+    a = mean[0]
+    print("进入CCEplanner策略当中")
     return {
-        'action': jnp.expand_dims(a, 0),
-        'log_action_mean_expl': jnp.expand_dims(mean_expl.mean(axis=0), 0),
-        'log_action_std_expl': jnp.expand_dims(std_expl.mean(axis=0), 0),
-        'log_plan_num_safe_traj': jnp.expand_dims(num_safe_traj, 0),
-        'log_plan_ret': jnp.expand_dims(ret[0, :].mean(axis=0), 0),
-        'log_plan_cost': jnp.expand_dims(traj_cost.mean(axis=0), 0)
-    }, {'action_mean': mean, 'action_std': std,
-        "action_mean_expl": mean_expl, 'action_std_expl': std_expl}
+      'action': jnp.expand_dims(a, 0),
+      'log_action_mean': jnp.expand_dims(mean.mean(axis=0), 0),
+      'log_action_std': jnp.expand_dims(std.mean(axis=0), 0),
+      'log_plan_num_safe_traj': jnp.expand_dims(num_safe_traj, 0),
+      'log_plan_ret': jnp.expand_dims(ret[0, :].mean(axis=0), 0),
+      'log_plan_cost': jnp.expand_dims(traj_cost.mean(axis=0), 0),
+
+      # —— 新增：MoE 比例（step 级）——
+      'log_moe_ratio': jnp.expand_dims(moe_ratio_vec, 0),  # shape (1, 3)
+
+      # —— 新增：各策略轨迹条数（step 级）——
+      'log_plan_num_traj': jnp.expand_dims(jnp.int32(num_trajs), 0),  # (1,)
+      'log_plan_num_pi': jnp.expand_dims(jnp.int32(num_pi_trajs), 0),  # (1,)
+      'log_plan_num_gaus': jnp.expand_dims(jnp.int32(num_gaus_trajs), 0),  # (1,)
+      'log_plan_num_idm': jnp.expand_dims(jnp.int32(num_idm_trajs), 0),  # (1,)
+
+      # 新增的统计指标
+      'log_plan_num_safe_pi': jnp.expand_dims(metrics_iter['num_safe_pi'], 0),
+      'log_plan_num_safe_gaus': jnp.expand_dims(metrics_iter['num_safe_gaus'], 0),
+      'log_plan_num_safe_idm': jnp.expand_dims(metrics_iter['num_safe_idm'], 0),
+      'log_plan_num_eli_pi': jnp.expand_dims(metrics_iter['num_eli_pi'], 0),
+      'log_plan_num_eli_gaus': jnp.expand_dims(metrics_iter['num_eli_gaus'], 0),
+      'log_plan_num_eli_idm': jnp.expand_dims(metrics_iter['num_eli_idm'], 0)
+
+    }, {'action_mean': mean, 'action_std': std}
 
   def policy(self, latent, state, obs = None):
     """
