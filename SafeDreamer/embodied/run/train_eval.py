@@ -305,7 +305,7 @@ def train_eval(
         logger.add(timer.stats(), prefix='timer')
 
         # 写入日志并计算FPS
-        logger.write(fps=True)
+        logger.write(fps=False)
   print("\n\n\n  == train_eval  === \n\n\n")
 ## 一、初始化日志目录并创建目录
   logdir = embodied.Path(args.logdir)

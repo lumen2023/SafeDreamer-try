@@ -275,7 +275,125 @@ class Agent(nj.Module):
     obs['cont'] = 1.0 - obs['is_terminal'].astype(jnp.float32)
     return obs
 
+class MoEGating(nj.Module):
+  """
+  最小MoE路由器：
+    输入：世界模型encode后的状态量（如 z_t，或post特征拼接）
+    输出：三个专家比例 [w_long, w_short, w_safe]
+  """
 
+  def __init__(self, config, name='moe'):
+    """
+    config 期望字段：
+      - mlp:   路由器MLP结构（如 {layers:[256,256], act:'elu', norm:None}）
+      - opt:   优化器配置（与 WorldModel 的 jaxutils.Optimizer 风格一致）
+    """
+    self.config = config
+    self.router = nets.MLP((3,), **config.mlp, name='router')  # 输出3维logits
+    self.opt    = jaxutils.Optimizer(name='moe_opt', **config.opt)
+
+  # --------- 特征整理：把RSSM/encoder出来的状态做成一个向量 ----------
+  def _to_feat(self, enc):
+    """
+    enc 可以是：
+      - dict，含 'z' / 'deter' / 'stoch' 等键（来自RSSM post/prior）
+      - ndarray，已是一个扁平向量（如直接给的 z_t）
+    返回： [*, D] 特征
+    """
+    if isinstance(enc, dict):
+      xs = []
+      for k in ('z', 'deter', 'stoch', 'embed'):
+        if k in enc:
+          v = enc[k]
+          if v.ndim > 2:
+            v = v.reshape(v.shape[:-2] + (-1,))
+          xs.append(v)
+      if not xs:
+        # 若没有上述键，就把所有数值键拼起来
+        for k, v in enc.items():
+          if isinstance(v, jnp.ndarray):
+            if v.ndim > 2:
+              v = v.reshape(v.shape[:-2] + (-1,))
+            xs.append(v)
+      feat = jnp.concatenate(xs, axis=-1) if len(xs) > 1 else xs[0]
+      return feat
+    else:
+      x = jnp.asarray(enc)
+      if x.ndim > 2:
+        x = x.reshape(x.shape[:-2] + (-1,))
+      return x
+
+  # --------- 前向：输出3个专家的概率 ----------
+  def __call__(self, enc_feat):
+    """
+    enc_feat: 世界模型encode后的状态量（dict或ndarray）
+    return: {'logits': [*,3], 'probs': [*,3]}
+    """
+    h = self._to_feat(enc_feat)                # [*, D]
+    out = self.router({'router': h})           # 兼容 nets.MLP 的返回风格
+    logits = out['router'] if isinstance(out, dict) else out
+    probs = jax.nn.softmax(logits, axis=-1)    # [*,3]
+    return {'logits': logits, 'probs': probs}
+
+  # --------- 训练入口：与WorldModel一致风格 ----------
+  def train(self, batch):
+    """
+    batch 期望最少包含以下其一：
+      监督式： batch['moe']['w_target']  -> [N,3]
+      强化式： batch['moe']['chosen_expert'] -> [N,1] 且 batch['moe']['adv'] -> [N,1]
+    可同时提供，两者loss会自动相加（权重=1）。
+    你也可以在外部给adv = returns - baseline。
+    """
+    metrics, outs = self.opt([self.router], self.loss, batch, has_aux=True)
+    # metrics 已包含优化器统计，这里 outs 返回 {'probs','logits'} 和 loss 字典
+    outs, loss_dict = outs
+    metrics.update(loss_dict)
+    return outs, metrics
+
+  # --------- 损失：优先用监督CE；否则用PG ----------
+  def loss(self, batch):
+    # 1) 取出输入特征（世界模型encode之后的状态量）
+    #    你可以把 z_t/post 放在 batch['moe_ctx']['enc'] 里；若实际键不同，替换下方索引即可
+    moe_ctx = batch.get('moe_ctx', {})
+    enc_feat = moe_ctx.get('enc')  # 推荐把 z_t 或 post 特征打包到这里
+    assert enc_feat is not None, "batch['moe_ctx']['enc'] 不能为空（需提供WM编码后的状态量）"
+
+    # 2) 前向
+    out = self(enc_feat)
+    logits, probs = out['logits'], out['probs']  # [N,3]
+
+    # 3) 监督式交叉熵（若提供 w_target）
+    ce_loss = 0.0
+    if 'moe' in batch and 'w_target' in batch['moe']:
+      w_tgt = jnp.asarray(batch['moe']['w_target'])            # [N,3]
+      w_tgt = w_tgt / jnp.clip(w_tgt.sum(-1, keepdims=True), 1e-8, 1.0)
+      logp = jax.nn.log_softmax(logits, axis=-1)               # [N,3]
+      ce = -(w_tgt * logp).sum(-1, keepdims=True)              # [N,1]
+      ce_loss = ce.mean()
+
+    # 4) 强化式 PG（若提供 chosen_expert + adv）
+    pg_loss = 0.0
+    if 'moe' in batch and 'chosen_expert' in batch['moe'] and 'adv' in batch['moe']:
+      act = jnp.asarray(batch['moe']['chosen_expert']).astype(jnp.int32)  # [N,1]
+      adv = jnp.asarray(batch['moe']['adv'])                               # [N,1]
+      oh  = jax.nn.one_hot(act.squeeze(-1), 3)                             # [N,3]
+      logp = jax.nn.log_softmax(logits, axis=-1)
+      logp_act = (oh * logp).sum(-1, keepdims=True)                        # [N,1]
+      pg_loss = -(logp_act * sg(adv)).mean()
+
+    total = ce_loss + pg_loss
+
+    # 5) 指标
+    metrics = {
+      'moe_loss_total': total,
+      'moe_loss_ce': ce_loss if isinstance(ce_loss, jnp.ndarray) else jnp.asarray(ce_loss),
+      'moe_loss_pg': pg_loss if isinstance(pg_loss, jnp.ndarray) else jnp.asarray(pg_loss),
+      'moe_p_long_mean': probs[..., 0:1].mean(),
+      'moe_p_short_mean': probs[..., 1:2].mean(),
+      'moe_p_safe_mean': probs[..., 2:3].mean(),
+      'moe_entropy_mean': (-(probs * jnp.log(jnp.clip(probs, 1e-8, 1.0))).sum(-1)).mean(),
+    }
+    return total.mean(), (out, metrics)
 
 class WorldModel(nj.Module):
 
@@ -712,26 +830,67 @@ class ImagSafeActorCritic(nj.Module):
     return {'action': self.actor(state)}, carry
 
   def train(self, imagine, start, context):
+    """
+    训练函数，用于执行强化学习的训练过程
+
+    Args:
+        imagine: 想象函数，用于生成轨迹
+        start: 起始状态
+        context: 上下文信息
+
+    Returns:
+        tuple: 包含轨迹和指标的元组
+    """
     def loss(start):
-      policy = lambda s: self.actor(sg(s)).sample(seed=nj.rng())
-      traj = imagine(policy, start, self.config.imag_horizon)
-      loss, metrics = self.loss(traj)
-      return loss, (traj, metrics)
+        """
+        损失计算函数
+
+        Args:
+              start: 起始状态
+
+          Returns:
+              tuple: 包含损失值和辅助信息的元组
+        """
+        policy = lambda s: self.actor(sg(s)).sample(seed=nj.rng())
+        traj = imagine(policy, start, self.config.imag_horizon)
+        loss, metrics = self.loss(traj)
+        return loss, (traj, metrics)
+
+    # 执行优化步骤，更新actor网络
     mets, (traj, metrics) = self.opt(self.actor, loss, start, has_aux=True)
     metrics.update(mets)
+
+    # 训练所有critic网络
     for key, critic in self.critics.items():
       mets = critic.train(traj, self.actor)
       metrics.update({f'{key}_critic_{k}': v for k, v in mets.items()})
+
+    # 训练所有cost critic网络
     for key, cost_critic in self.cost_critics.items():
       mets = cost_critic.train(traj, self.actor)
       metrics.update({f'{key}_cost_critic_{k}': v for k, v in mets.items()})
+
     return traj, metrics
 
 
   def loss(self, traj):
+    """
+    计算策略网络的损失函数，支持使用多个critic进行奖励估计，并可选地加入约束成本（cost）处理。
+
+    参数:
+      traj (dict): 包含轨迹数据的字典，通常包括状态、动作、奖励等信息。
+
+    返回:
+      tuple:
+        - loss (jnp.ndarray): 标量损失值。
+        - metrics (dict): 包含训练过程中各种统计指标的字典。
+    """
+
     metrics = {}
     advs = []
     total = sum(self.scales[k] for k in self.critics)
+
+    # 遍历所有critics，计算优势函数并收集相关统计信息
     for key, critic in self.critics.items():
       rew, ret, base = critic.score(traj, self.actor)
       offset, invscale = self.retnorms[key](ret)
@@ -742,24 +901,40 @@ class ImagSafeActorCritic(nj.Module):
       metrics.update(jaxutils.tensorstats(ret, f'{key}_return_raw'))
       metrics.update(jaxutils.tensorstats(normed_ret, f'{key}_return_normed'))
       metrics[f'{key}_return_rate'] = (jnp.abs(ret) >= 0.5).mean()
+
+    # 合并所有critic计算出的优势函数
     adv = jnp.stack(advs).sum(0)
+
+    # 使用actor网络计算策略分布和对数概率
     policy = self.actor(sg(traj))
     logpi = policy.log_prob(sg(traj['action']))[:-1]
+
+    # 根据配置选择损失计算方式（backprop 或 reinforce）
     loss = {'backprop': -adv, 'reinforce': -logpi * sg(adv)}[self.grad]
+
+    # 加入策略熵正则项
     ent = policy.entropy()[:-1]
     loss -= self.config.actent * ent
+
+    # 应用轨迹权重和损失缩放因子
     loss *= sg(traj['weight'])[:-1]
     loss *= self.config.loss_scales.actor
-    metrics.update(self._metrics(traj, policy, logpi, ent, adv))
-    loss = loss.mean()
-    # if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
 
-    # if self.config.expl_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior not in [None, "None"]:
+    # 更新额外的评估指标
+    metrics.update(self._metrics(traj, policy, logpi, ent, adv))
+
+    # 对最终损失取平均
+    loss = loss.mean()
+
+    # 判断是否启用带约束的强化学习（如SAC-Lag）
     if self.config.task_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior not in [None, "None"]:
       print("-----------使用了SAC_Lag----------------")
+
       cost_advs = []
       total = sum(self.cost_scales[k] for k in self.cost_critics)
       cost_rets = []
+
+      # 遍历所有cost critics，计算成本相关的优势函数
       for key, cost_critic in self.cost_critics.items():
         cost, cost_ret, base = cost_critic.score(traj, self.actor)
         cost_rets.append(cost_ret)
@@ -770,19 +945,233 @@ class ImagSafeActorCritic(nj.Module):
         metrics.update(jaxutils.tensorstats(cost, f'{key}_cost'))
         metrics.update(jaxutils.tensorstats(cost_ret, f'{key}_cost_raw'))
         metrics.update(jaxutils.tensorstats(normed_ret, f'{key}_cost_normed'))
-        metrics[f'{key}_cost_rate'] = (jnp.abs(ret) >= 0.5).mean()
-      if self.config.pessimistic: 
+        metrics[f'{key}_cost_rate'] = (jnp.abs(cost_ret) >= 0.5).mean()
+
+      # 根据是否悲观估计选择成本聚合方式
+      if self.config.pessimistic:
         cost_ret_episode = jnp.stack(cost_ret).sum(0)
       else:
         cost_ret_episode = jnp.stack(cost_ret).mean(0)
+
+      # 使用拉格朗日乘子法处理约束
       penalty, lagrange_multiplier, penalty_multiplier = self.lagrange(cost_ret_episode)
       metrics[f'lagrange_multiplier'] = lagrange_multiplier
       metrics[f'penalty_multiplier'] = penalty_multiplier
       metrics[f'penalty'] = penalty
+
+      # 将惩罚项加入总损失
       loss += penalty
     else:
         print("-----------只使用了SAC----------------")
+
     return loss, metrics
+
+
+  def _metrics(self, traj, policy, logpi, ent, adv):
+    metrics = {}
+    ent = policy.entropy()[:-1]
+    rand = (ent - policy.minent) / (policy.maxent - policy.minent)
+    rand = rand.mean(range(2, len(rand.shape)))
+    act = traj['action']
+    act = jnp.argmax(act, -1) if self.act_space.discrete else act
+    metrics.update(jaxutils.tensorstats(act, 'action'))
+    metrics.update(jaxutils.tensorstats(rand, 'policy_randomness'))
+    metrics.update(jaxutils.tensorstats(ent, 'policy_entropy'))
+    metrics.update(jaxutils.tensorstats(logpi, 'policy_logprob'))
+    metrics.update(jaxutils.tensorstats(adv, 'adv'))
+    metrics['imag_weight_dist'] = jaxutils.subsample(traj['weight'])
+    return metrics
+
+class New_ImagSafeActorCritic(nj.Module):
+  def __init__(self, critics, cost_critics, scales, cost_scales, act_space, config):
+      # 初始化函数，用于设置策略网络的批评家、成本批评家、比例、成本比例、动作空间和配置参数
+      # 过滤批评家和成本批评家，仅保留那些在scales中有对应非零比例的项
+      critics = {k: v for k, v in critics.items() if scales[k]}
+      # 应该用 cost_scales
+      cost_critics = {k: v for k, v in cost_critics.items() if cost_scales.get(k, 0)}
+
+      # 确保每个非零比例的键在批评家和成本批评家中都存在
+      for key, scale in scales.items():
+        assert not scale or key in critics, key
+      for key, cost_scale in cost_scales.items():
+        assert not cost_scale or key in cost_critics, key
+
+      # 初始化实例变量，仅包含那些有非零比例的批评家和成本批评家
+      self.critics = {k: v for k, v in critics.items() if scales[k]}
+      self.cost_critics = {k: v for k, v in cost_critics.items() if cost_scales[k]}
+
+      # 初始化比例和成本比例以及其他配置参数
+      self.scales = scales
+      self.cost_scales = cost_scales
+      self.act_space = act_space
+      self.config = config
+
+      # 初始化拉格朗日乘子对象，用于处理约束优化问题
+      self.lagrange = jaxutils.Lagrange(self.config.lagrange_multiplier_init, self.config.penalty_multiplier_init, self.config.cost_limit, name=f'lagrange')
+
+      # 根据动作空间的离散性选择合适的梯度计算方法
+      disc = act_space.discrete
+      self.grad = config.actor_grad_disc if disc else config.actor_grad_cont
+
+      # 初始化动作网络（策略网络），根据配置参数和动作空间的形状
+      self.actor = nets.MLP(
+          name='actor', dims='deter', shape=act_space.shape, **config.actor,
+          dist=config.actor_dist_disc if disc else config.actor_dist_cont)
+
+      # 初始化回报和成本的归一化对象，用于稳定学习过程
+      self.retnorms = {
+          k: jaxutils.Moments(**config.retnorm, name=f'retnorm_{k}')
+          for k in critics}
+      self.costnorms = {
+          k: jaxutils.Moments(**config.costnorm, name=f'costnorm_{k}')
+          for k in cost_critics}
+      print("想象SafeActorCritic--优化器")
+      # 初始化策略网络的优化器
+      self.opt = jaxutils.Optimizer(name='actor_opt', **config.actor_opt)
+
+  def initial(self, batch_size):
+    return {}
+
+  def policy(self, state, carry):
+    return {'action': self.actor(state)}, carry
+
+  def train(self, imagine, start, context):
+    """
+    训练函数，用于执行强化学习的训练过程
+
+    Args:
+        imagine: 想象函数，用于生成轨迹
+        start: 起始状态
+        context: 上下文信息
+
+    Returns:
+        tuple: 包含轨迹和指标的元组
+    """
+    def loss(start):
+        """
+        损失计算函数
+
+        Args:
+              start: 起始状态
+
+          Returns:
+              tuple: 包含损失值和辅助信息的元组
+        """
+        policy = lambda s: self.actor(sg(s)).sample(seed=nj.rng())
+        traj = imagine(policy, start, self.config.imag_horizon)
+        loss, metrics = self.loss(traj)
+        return loss, (traj, metrics)
+
+    # 执行优化步骤，更新actor网络
+    mets, (traj, metrics) = self.opt(self.actor, loss, start, has_aux=True)
+    metrics.update(mets)
+
+    # 训练所有critic网络
+    for key, critic in self.critics.items():
+      mets = critic.train(traj, self.actor)
+      metrics.update({f'{key}_critic_{k}': v for k, v in mets.items()})
+
+    # 训练所有cost critic网络
+    for key, cost_critic in self.cost_critics.items():
+      mets = cost_critic.train(traj, self.actor)
+      metrics.update({f'{key}_cost_critic_{k}': v for k, v in mets.items()})
+
+    return traj, metrics
+
+
+  def loss(self, traj):
+    """
+    计算策略网络的损失函数，支持使用多个critic进行奖励估计，并可选地加入约束成本（cost）处理。
+
+    参数:
+      traj (dict): 包含轨迹数据的字典，通常包括状态、动作、奖励等信息。
+
+    返回:
+      tuple:
+        - loss (jnp.ndarray): 标量损失值。
+        - metrics (dict): 包含训练过程中各种统计指标的字典。
+    """
+
+    metrics = {}
+    advs = []
+    total = sum(self.scales[k] for k in self.critics)
+
+    # 遍历所有critics，计算优势函数并收集相关统计信息
+    for key, critic in self.critics.items():
+      rew, ret, base = critic.score(traj, self.actor)
+      offset, invscale = self.retnorms[key](ret)
+      normed_ret = (ret - offset) / invscale
+      normed_base = (base - offset) / invscale
+      advs.append((normed_ret - normed_base) * self.scales[key] / total)
+      metrics.update(jaxutils.tensorstats(rew, f'{key}_reward'))
+      metrics.update(jaxutils.tensorstats(ret, f'{key}_return_raw'))
+      metrics.update(jaxutils.tensorstats(normed_ret, f'{key}_return_normed'))
+      metrics[f'{key}_return_rate'] = (jnp.abs(ret) >= 0.5).mean()
+
+    # 合并所有critic计算出的优势函数
+    adv = jnp.stack(advs).sum(0)
+
+    # 使用actor网络计算策略分布和对数概率
+    policy = self.actor(sg(traj))
+    logpi = policy.log_prob(sg(traj['action']))[:-1]
+
+    # 根据配置选择损失计算方式（backprop 或 reinforce）
+    loss = {'backprop': -adv, 'reinforce': -logpi * sg(adv)}[self.grad]
+
+    # 加入策略熵正则项
+    ent = policy.entropy()[:-1]
+    loss -= self.config.actent * ent
+
+    # 应用轨迹权重和损失缩放因子
+    loss *= sg(traj['weight'])[:-1]
+    loss *= self.config.loss_scales.actor
+
+    # 更新额外的评估指标
+    metrics.update(self._metrics(traj, policy, logpi, ent, adv))
+
+    # 对最终损失取平均
+    loss = loss.mean()
+
+    # 判断是否启用带约束的强化学习（如SAC-Lag）
+    if self.config.task_behavior not in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner'] and self.config.expl_behavior not in [None, "None"]:
+      print("-----------使用了SAC_Lag----------------")
+
+      cost_advs = []
+      total = sum(self.cost_scales[k] for k in self.cost_critics)
+      cost_rets = []
+
+      # 遍历所有cost critics，计算成本相关的优势函数
+      for key, cost_critic in self.cost_critics.items():
+        cost, cost_ret, base = cost_critic.score(traj, self.actor)
+        cost_rets.append(cost_ret)
+        offset, invscale = self.costnorms[key](cost_ret)
+        normed_ret = (cost_ret - offset) / invscale
+        normed_base = (base - offset) / invscale
+        cost_advs.append((normed_ret - normed_base) * self.cost_scales[key] / total)
+        metrics.update(jaxutils.tensorstats(cost, f'{key}_cost'))
+        metrics.update(jaxutils.tensorstats(cost_ret, f'{key}_cost_raw'))
+        metrics.update(jaxutils.tensorstats(normed_ret, f'{key}_cost_normed'))
+        metrics[f'{key}_cost_rate'] = (jnp.abs(cost_ret) >= 0.5).mean()
+
+      # 根据是否悲观估计选择成本聚合方式
+      if self.config.pessimistic:
+        cost_ret_episode = jnp.stack(cost_rets).sum(0)
+      else:
+        cost_ret_episode = jnp.stack(cost_rets).mean(0)
+
+      # 使用拉格朗日乘子法处理约束
+      penalty, lagrange_multiplier, penalty_multiplier = self.lagrange(cost_ret_episode)
+      metrics[f'lagrange_multiplier'] = lagrange_multiplier
+      metrics[f'penalty_multiplier'] = penalty_multiplier
+      metrics[f'penalty'] = penalty
+
+      # 将惩罚项加入总损失
+      loss += penalty
+    else:
+        print("-----------只使用了SAC----------------")
+
+    return loss, metrics
+
 
   def _metrics(self, traj, policy, logpi, ent, adv):
     metrics = {}

@@ -103,8 +103,8 @@ defaults:
   actor_grad_disc: reinforce
   actor_grad_cont: backprop
   critic_type: vfunction
-#  imag_horizon: 15
-  imag_horizon: 5
+  imag_horizon: 15
+#  imag_horizon: 5
   imag_unroll: False
   horizon: 333
 #  penalty_multiplier_init: 5e-9
@@ -124,7 +124,7 @@ defaults:
   retnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
   costnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
 #  planner: {horizon: 15, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
-  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, mixture_coef_pi: 0.5, mixture_coef_gaus: 0.4, mixture_coef_idm: 0.1, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
+  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, mixture_coef_pi: 0.1, mixture_coef_gaus: 0.9, mixture_coef_idm: 0.0, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 10, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 

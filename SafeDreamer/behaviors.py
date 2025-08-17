@@ -465,7 +465,7 @@ class CCEPlanner(nj.Module):
                                           ret, cost, traj_pi_gaus)
     return elite_value, elite_actions
 
-  def MoE_policy(self, latent, state, obs = None):
+  def New_policy(self, latent, state, obs = None):
     """
     使用 TD-MPC 推理规划下一步动作。
 
