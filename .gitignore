@@ -16,3 +16,5 @@ metadrive*/
 safetygymnasium/
 logdir*/
 ;
+*.whl
+*.zip
