@@ -71,7 +71,7 @@ class FromGymnasium(embodied.Env):
     obs, info = self._env.reset(seed=0)
     self._done = True
     self._info = None
-    return self._obs(obs, 0.0, 0.0,0,False, [0, 0], is_first=True)
+    return self._obs(obs, 0.0, 0.0,0,False, [0, 0], [0, 0, 0], [0, 0], [0, 0], is_first=True)
 
   def step(self, action):
     """
@@ -88,7 +88,7 @@ class FromGymnasium(embodied.Env):
     if action['reset'] or self._done:
       self._done = False
       obs, info = self._env.reset()
-      return self._obs(obs, 0.0, 0.0, 0, False, [0,0],is_first=True)
+      return self._obs(obs, 0.0, 0.0, 0, False, [0,0], [0, 0, 0], [0, 0], [0, 0], is_first=True)
 
     # 根据配置调整动作输入
     if self._act_dict:
@@ -110,6 +110,9 @@ class FromGymnasium(embodied.Env):
       obs, reward, terminated, truncated, self._info = result
       cost = self._info['cost']
       speed = self._info['speed']
+      moe_ratio = [0, 0, 0]
+      gaus_mean = [0, 0]
+      gaus_std = [0, 0]
       action_idm = self._info['action_idm']
       crash = self._info['crashed']
       if self._info['crashed'] == True or self._info['on_road'] == False:
@@ -142,14 +145,14 @@ class FromGymnasium(embodied.Env):
       self.cost_gremlins = 0
     # 返回观察结果、奖励、成本以及是否完成的标志
     return self._obs(
-        obs, reward, cost, speed, crash, action_idm,
+        obs, reward, cost, speed, crash, action_idm, moe_ratio, gaus_mean, gaus_std,
         # obs, reward, cost, crash, self._info,
         # obs, reward, cost, crash,
         is_last=bool(self._done),
         is_terminal=bool(self._info.get('is_terminal', self._done)))
 
   def _obs(
-          self, obs, reward, cost, speed, crash, action_idm, is_first=False, is_last=False, is_terminal=False):
+          self, obs, reward, cost, speed, crash, action_idm, moe_ratio, gaus_mean, gaus_std, is_first=False, is_last=False, is_terminal=False):
     # self, obs, reward, cost, crash, info, is_first=False, is_last=False, is_terminal=False):
     """
     处理观察(observations)，将接收到的观察数据以及其他相关信息整合为一个结构化的字典。
@@ -180,6 +183,9 @@ class FromGymnasium(embodied.Env):
       reward=np.float32(reward),
       cost=np.float32(cost),
       speed=np.float32(speed),
+      moe_ratio = moe_ratio,
+      gaus_mean = gaus_mean,
+      gaus_std = gaus_std,
       crash=crash,
       action_idm=np.float32(action_idm),
       is_first=is_first,

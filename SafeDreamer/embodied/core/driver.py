@@ -4,6 +4,14 @@ import numpy as np
 
 from .basics import convert
 
+from pathlib import Path
+import ruamel.yaml as yaml
+
+# 位于: SafeDreamer/embodied/core/driver.py
+project_root = Path(__file__).resolve().parents[2]   # -> /.../SafeDreamer-try/SafeDreamer
+config_path = project_root / 'configs.yaml'          # -> /.../SafeDreamer-try/SafeDreamer/configs.yaml
+
+configs = yaml.YAML(typ='safe').load(config_path.read_text())
 
 class Driver:
 
@@ -16,6 +24,12 @@ class Driver:
 
   def __init__(self, env, **kwargs):
     assert len(env) > 0
+    self.config = configs
+    cfg = configs['defaults']
+    planner_cfg = cfg.get('planner', {})
+    self.MoE = [planner_cfg.get('mixture_coef_pi'),
+                planner_cfg.get('mixture_coef_gaus'),
+                planner_cfg.get('mixture_coef_idm')]
     self._env = env
     self._kwargs = kwargs
     self._on_steps = []
@@ -97,6 +111,9 @@ class Driver:
     obs['lagrange_p'] = lag_p * np.ones(len(self._env))
     obs['lagrange_i'] = lag_i * np.ones(len(self._env))
     obs['lagrange_d'] = lag_d * np.ones(len(self._env))
+    obs['moe_ratio'] = obs["moe_ratio"] * np.ones(len(self._env))
+    obs['gaus_mean'] = obs["gaus_mean"] * np.ones(len(self._env))
+    obs['gaus_std'] = obs["gaus_std"] * np.ones(len(self._env))
 
     # 将观察结果中的每个值通过convert函数转换
     obs = {k: convert(v) for k, v in obs.items()}
@@ -105,8 +122,15 @@ class Driver:
     assert all(len(x) == len(self._env) for x in obs.values()), obs
 
     # ！！！使用当前策略（什么策略）选择下一步的动作 ！！！ #
+    # acts, self._state = policy(obs, self._state, **self._kwargs)
     acts, self._state = policy(obs, self._state, **self._kwargs)
 
+    if 'moe_ratio' in acts:
+      obs['moe_ratio'] = convert(acts['moe_ratio'])
+    if 'log_action_mean' in acts:
+      obs['gaus_mean'] = convert(acts['log_action_mean'])
+    if 'log_action_std' in acts:
+      obs['gaus_std'] = convert(acts['log_action_std'])
     # 将选定的动作通过convert函数转换
     acts = {k: convert(v) for k, v in acts.items()}
 

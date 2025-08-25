@@ -14,7 +14,7 @@ for i in range(10):
         # action = -0.1 # Your agent code here
         action = [0.1, 0.1]  # Your agent code here
         i += 1
-        # if i%2 == 0:
+        # if i%2 == 0:软件和更新
         #     action[1] = -0.1
         # env.idm_flag = True
         obs, reward, done, truncated, info = env.step(action)

@@ -60,6 +60,7 @@ def cost_from_state(wm, state):
   # 返回计算出的成本
   return cost
 
+# task_behavior
 class Greedy(nj.Module):
 
   def __init__(self, wm, act_space, config):
@@ -327,14 +328,15 @@ class PIDPlanner(nj.Module):
     a = mean[0]
     return {'action': jnp.expand_dims(a,0), 'log_action_mean': jnp.expand_dims(mean.mean(axis=0),0), 'log_action_std': jnp.expand_dims(std.mean(axis=0),0), 'log_plan_num_safe_traj': jnp.expand_dims(num_safe_traj,0), 'log_plan_ret': jnp.expand_dims(ret[0,:].mean(axis=0),0), 'log_plan_cost':jnp.expand_dims(traj_cost.mean(axis=0),0)}, {'action_mean': mean, 'action_std': std}
 
+# expl_behavior
 class CCEPlanner(nj.Module):
 
-  def __init__(self, ac, wm, act_space, config):
+  def __init__(self, ac, wm, act_space, config, moe_router = None):
     self.config = config
     self.ac = ac
     self.wm = wm
     self.act_space = act_space
-
+    self.moe_router = moe_router  # 直接保存路由器句柄
     self.horizon = self.config.planner.horizon
     self.num_samples =self.config.planner.num_samples
     self.mixture_coef = self.config.planner.mixture_coef
@@ -699,7 +701,6 @@ class CCEPlanner(nj.Module):
 
     # 定义IDM噪声水平 (可以根据需要调整，建议使用较小的值，如0.01)
     idm_noise_scale = 0.05  # 高斯噪声的标准差
-    std = self.init_std * jnp.ones((self.horizon + 1,) + self.act_space.shape)
 
     num_pi_trajs = int(self.mixture_coef_pi * self.num_samples)
     num_gaus_trajs = int(self.mixture_coef_gaus * self.num_samples)
@@ -716,6 +717,45 @@ class CCEPlanner(nj.Module):
     else:
       # 否则初始化为零
       mean = jnp.zeros((self.horizon + 1,) + self.act_space.shape)
+
+    std = self.init_std * jnp.ones((self.horizon + 1,) + self.act_space.shape)
+    mean_last = mean
+    std_last = std
+
+    # === 在 policy() 里，初始化 mean/std 之后，替换 num_*_trajs 的计算 ===
+    key = nj.rng()  # 拿一个 PRNGKey（你项目已有 rng() 包装，保持一致）
+
+    # 1) 先根据是否有路由器，得到 probs（pi, gaus, idm）
+    if self.moe_router is not None:
+      try:
+        latent0 = {k: v for k, v in latent.items()}  # (N_env, ...)
+        prev_mean0 = mean[0][None]  # (1, act_dim)
+        prev_std0 = std[0][None]  # (1, act_dim)
+        probs = self.moe_router.policy(latent0, prev_mean0, prev_std0)  # (N_env,3) 或 (1,3)
+        probs = probs.mean(axis=0)  # 多环境时取平均；也可取第一个
+      except Exception:
+        # 回退：用固定配比
+        probs = jnp.array([self.mixture_coef_pi, self.mixture_coef_gaus, self.mixture_coef_idm], jnp.float32)
+    else:
+      # 回退：用固定配比
+      probs = jnp.array([self.mixture_coef_pi, self.mixture_coef_gaus, self.mixture_coef_idm], jnp.float32)
+
+    # 2) 防御式归一化（防 NaN/数值边界）
+    probs = jnp.clip(probs, 1e-6, 1.0)
+    probs = probs / probs.sum(-1, keepdims=True)  # ← 概率和=1
+
+    # # 3) 用采样分配每条轨迹来源（避免写任何“整数四舍五入”的辅助函数）
+    # #    采样 num_samples 次，得到 shape=(num_samples,) 的类别索引（0=pi,1=gaus,2=idm）
+    # src_idx = jax.random.categorical(key, jnp.log(probs), shape=(self.num_samples,))
+    # # 统计三类数量
+    # counts = jnp.bincount(src_idx, length=3)
+    # num_pi_trajs = int(counts[0])
+    # num_gaus_trajs = int(counts[1])
+    # num_idm_trajs = int(counts[2])
+
+    # 4) 记录 MoE 比例（用于训练/日志），同时兼容你的 loss() 两种键名
+    # moe_ratio_vec_policy = probs.astype(jnp.float32)  # (3,)
+    moe_ratio_vec = probs.astype(jnp.float32)  # (3,)
 
     def summarize_and_log_trajectory_statistics(traj_pi, traj_gaus, traj_idm, traj_cost, elite_idxs, config):
       import jax.numpy as jnp
@@ -872,14 +912,15 @@ class CCEPlanner(nj.Module):
     print("进入CCEplanner策略当中")
     return {
       'action': jnp.expand_dims(a, 0),
-      'log_action_mean': jnp.expand_dims(mean.mean(axis=0), 0),
-      'log_action_std': jnp.expand_dims(std.mean(axis=0), 0),
+      'log_action_mean': jnp.expand_dims(mean_last.mean(axis=0), 0),
+      'log_action_std': jnp.expand_dims(std_last.mean(axis=0), 0),
       'log_plan_num_safe_traj': jnp.expand_dims(num_safe_traj, 0),
       'log_plan_ret': jnp.expand_dims(ret[0, :].mean(axis=0), 0),
       'log_plan_cost': jnp.expand_dims(traj_cost.mean(axis=0), 0),
 
       # —— 新增：MoE 比例（step 级）——
       'log_moe_ratio': jnp.expand_dims(moe_ratio_vec, 0),  # shape (1, 3)
+      'moe_ratio': jnp.expand_dims(moe_ratio_vec, 0),  # shape (1, 3)
 
       # —— 新增：各策略轨迹条数（step 级）——
       'log_plan_num_traj': jnp.expand_dims(jnp.int32(num_trajs), 0),  # (1,)

@@ -5,13 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7be36dc6-23d4-4ce0-8e46-b51d930d05fd" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/SafeDreamer.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/SafeDreamer.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/highway_fast_test.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/highway_fast_test.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/highway_fast_train.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/highway_fast_train_cpu.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/highway_intersection_test.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/highway_intersection_test.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/agent.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/behaviors.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/behaviors.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/configs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/configs.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/core/driver.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/core/driver.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/core/logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/core/logger.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/highway_env" beforeDir="false" afterPath="$PROJECT_DIR$/highway_env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/core/random.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/core/random.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SafeDreamer/embodied/envs/from_gymnasium.py" beforeDir="false" afterPath="$PROJECT_DIR$/SafeDreamer/embodied/envs/from_gymnasium.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_env.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,12 +57,15 @@
     "Python.DreamerV3_fast_train.executor": "Run",
     "Python.__init__.executor": "Run",
     "Python.highway_fast_train.executor": "Run",
+    "Python.highway_fast_train_GPU.executor": "Run",
+    "Python.highway_fast_train_cpu.executor": "Run",
     "Python.highway_intersection_train .executor": "Run",
     "Python.osrp_train_vector.executor": "Run",
     "Python.plot.executor": "Run",
     "Python.test_env.executor": "Debug",
     "Python.train_eval.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "WebServerToolWindowPanel.toolwindow.highlight.mappings": "true",
@@ -64,13 +74,13 @@
     "WebServerToolWindowPanel.toolwindow.show.permissions": "false",
     "WebServerToolWindowPanel.toolwindow.show.size": "false",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/lumen/@Code/DLPA",
+    "last_opened_file_path": "/home/ac/@Code/SafeDreamer-try",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -79,7 +89,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.highway_fast_train">
+  <component name="RunManager" selected="Python.highway_fast_train_GPU">
     <configuration name="DreamerV3_fast_train" type="PythonConfigurationType" factoryName="Python" folderName="Highway-Fast">
       <module name="SafeDreamer" />
       <option name="ENV_FILES" value="" />
@@ -89,7 +99,6 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="SDK_NAME" value="SafeDreamer" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/SafeDreamer" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
@@ -120,6 +129,29 @@
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$USER_HOME$/.cache/JetBrains/PyCharm2024.3/remote_sources/2060017954/275362901/gymnasium/envs/__init__.py" />
       <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="highway_fast_train_GPU" type="PythonConfigurationType" factoryName="Python" folderName="Highway-Fast">
+      <module name="SafeDreamer" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="EchoDreamer" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/SafeDreamer" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/SafeDreamer/train.py" />
+      <option name="PARAMETERS" value="--configs osrp_vector_highway-fast --method osrp_vector_highway-fast --jax.logical_gpus 0" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -175,7 +207,8 @@
     </configuration>
     <list>
       <item itemvalue="Python.DreamerV3_fast_train" />
-      <item itemvalue="Python.highway_fast_train" />
+      <item itemvalue="Python.highway_fast_train_cpu" />
+      <item itemvalue="Python.highway_fast_train_GPU" />
       <item itemvalue="Python.highway_intersection_train " />
       <item itemvalue="Python.osrp_test_vector" />
       <item itemvalue="Python.osrp_train_vector" />
@@ -196,7 +229,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-1b1018131e27-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.22562.180" />
+        <option value="bundled-python-sdk-657d8234b839-64d779b69b7a-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.26927.74" />
       </set>
     </attachedChunks>
   </component>
@@ -238,12 +271,12 @@
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
-          <line>123</line>
+          <line>133</line>
           <option name="timeStamp" value="32" />
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
-          <line>114</line>
+          <line>124</line>
           <option name="timeStamp" value="33" />
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
@@ -253,33 +286,43 @@
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
-          <line>98</line>
+          <line>108</line>
           <option name="timeStamp" value="60" />
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
-          <line>871</line>
-          <option name="timeStamp" value="64" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py</url>
-          <line>77</line>
-          <option name="timeStamp" value="68" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
-          <line>683</line>
-          <option name="timeStamp" value="69" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/test_env.py</url>
           <line>20</line>
           <option name="timeStamp" value="70" />
         </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
+          <line>186</line>
+          <option name="timeStamp" value="118" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/embodied/core/driver.py</url>
+          <line>125</line>
+          <option name="timeStamp" value="123" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
+          <line>183</line>
+          <option name="timeStamp" value="128" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
+          <line>44</line>
+          <option name="timeStamp" value="136" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/SafeDreamer/agent.py</url>
+          <line>292</line>
+          <option name="timeStamp" value="138" />
+        </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/SafeDreamer/embodied/run/train_eval.py</url>
-          <line>38</line>
-          <option name="timeStamp" value="71" />
+          <url>file://$PROJECT_DIR$/SafeDreamer/behaviors.py</url>
+          <line>812</line>
+          <option name="timeStamp" value="141" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

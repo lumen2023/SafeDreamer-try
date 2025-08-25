@@ -124,7 +124,7 @@ defaults:
   retnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
   costnorm: {impl: perc_ema, decay: 0.99, max: 1.0, perclo: 5.0, perchi: 95.0}
 #  planner: {horizon: 15, num_samples: 500, mixture_coef: 0.05, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
-  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, mixture_coef_pi: 0.1, mixture_coef_gaus: 0.9, mixture_coef_idm: 0.0, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
+  planner: {horizon: 10, num_samples: 500, mixture_coef: 0.1, mixture_coef_pi: 0.5, mixture_coef_gaus: 0.4, mixture_coef_idm: 0.1, num_elites: 50, temperature: 10.0, iterations: 6, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 10, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 #  planner: {horizon: 5, num_samples: 1000, mixture_coef: 0.1, num_elites: 100, temperature: 15.0, iterations: 10, momentum: 0.1, init_std: 1.0}
 
@@ -137,6 +137,34 @@ defaults:
   disag_head: {layers: 5, units: 1024, act: silu, norm: layer, dist: mse, outscale: 1.0, inputs: [deter, stoch, action], winit: normal, fan: avg}
   disag_target: [stoch]
   disag_models: 8
+
+  # === MoE Router（第二个 actor）===
+  use_moe_router: true
+  router_layers: 4                 # 2–3 层足够，过深容易不稳
+  router_units: 1024         # 路由器 MLP 的隐藏层宽度
+  router_opt:
+    opt: adam
+    lr: 1.0e-4                     # 比 1e-4 略大，路由收敛更快
+    eps: 1.0e-8
+    clip: 50.0                     # 加梯度裁剪，避免 logit 爆
+    wd: 1.0e-6                     # 轻微权重衰减，防过拟合
+    warmup: 5000                   # 5k step 线性热身
+    lateclip: 0.0
+  # 温度与先验
+  router_temp: 1.0                # 稍高温度→早期探索更均匀；若后期想收敛，可降到 1.0
+  router_prior: [0.5, 0.4, 0.1] # 与 planner 的 (pi,gaus,idm) 接近，但给 IDM 留 0.05 安全余量
+
+  # 损失权重（无显式监督场景）
+  router_w_policy: 1.0             # 主目标：adv * sum(khat * log p)
+  router_w_elite: 0.2              # 暂无精英统计就先关；有了再开到 0.2–0.5 试
+  router_ent_coef: 2.0e-3          # 略强的熵正则，防止过早塌缩
+  router_prior_coef: 5.0e-4        # 先验 KL 轻拉回锚点，避免只靠熵
+
+
+  # （可选的温度退火，如果你想后期更“尖锐”，就加上这三行并在代码里读取）
+  # router_temp_start: 1.5
+  # router_temp_end: 1.0
+  # router_temp_anneal_steps: 100000
 
 
 osrp_vector_highway-intersection:

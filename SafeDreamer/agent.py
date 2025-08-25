@@ -37,16 +37,26 @@ class Agent(nj.Module):
     self.act_space = act_space['action']
     self.step = step
     self.wm = WorldModel(obs_space, act_space, config, name='wm')
+
+
+    # ② （新增）MoE 路由器：像第二个 actor 一样初始化
+    self.moe_actor = None
+    if getattr(self.config, 'use_moe_router', True):
+      self.moe_actor = MoERouterActor(self.act_space, self.config, name='moe_router')
+      # ④ （新增）把路由器“挂”到规划器上（不改构造签名，按属性注入）
+
+
     self.task_behavior = getattr(behaviors, config.task_behavior)(
         self.wm, self.act_space, self.config, name='task_behavior')
     if config.expl_behavior == 'None':
       self.expl_behavior = self.task_behavior
     elif config.expl_behavior in ['CEMPlanner', 'CCEPlanner', 'PIDPlanner']:
       self.expl_behavior = getattr(behaviors, config.expl_behavior)(
-          self.task_behavior.ac, self.wm, self.act_space, self.config, name='expl_behavior')
+          self.task_behavior.ac, self.wm, self.act_space, self.config, self.moe_actor, name='expl_behavior')
     else:
       self.expl_behavior = getattr(behaviors, config.expl_behavior)(
-          self.wm, self.act_space, self.config, name='expl_behavior')
+          self.wm, self.act_space, self.config, self.moe_actor, name='expl_behavior')
+
 
   # 此方法用于初始化代理的策略。它会调用世界模型、任务行为和探索行为的初始化方法，
   def policy_initial(self, batch_size):
@@ -177,6 +187,11 @@ class Agent(nj.Module):
     state, wm_outs, mets = self.wm.train(data, state)
     metrics.update(mets)
 
+    # （新增）基于真实 batch 训练 MoE 路由器：输入 data + WM 的 post（B,T,…）
+    if self.moe_actor is not None:
+        moe_outs, moe_mets = self.moe_actor.train(data, wm_outs['post'])
+        metrics.update({f'moe_{k}': v for k, v in moe_mets.items()})
+
     # 构建上下文，包括原始数据和世界模型的后验(posterior)信息。
     context = {**data, **wm_outs['post']}
 
@@ -275,125 +290,130 @@ class Agent(nj.Module):
     obs['cont'] = 1.0 - obs['is_terminal'].astype(jnp.float32)
     return obs
 
-class MoEGating(nj.Module):
-  """
-  最小MoE路由器：
-    输入：世界模型encode后的状态量（如 z_t，或post特征拼接）
-    输出：三个专家比例 [w_long, w_short, w_safe]
-  """
+class MoERouterActor(nj.Module):
+    def __init__(self, act_space, config, name='moe_router'):
+        self.config = config
+        self.act_space = act_space
 
-  def __init__(self, config, name='moe'):
-    """
-    config 期望字段：
-      - mlp:   路由器MLP结构（如 {layers:[256,256], act:'elu', norm:None}）
-      - opt:   优化器配置（与 WorldModel 的 jaxutils.Optimizer 风格一致）
-    """
-    self.config = config
-    self.router = nets.MLP((3,), **config.mlp, name='router')  # 输出3维logits
-    self.opt    = jaxutils.Optimizer(name='moe_opt', **config.opt)
+        # 读取超参（带默认值，防止缺键）
+        layers = int(getattr(config, 'router_layers', 3))
+        hidden = int(getattr(config, 'router_units', 1024))
+        self.temp = float(getattr(config, 'router_temp', 1.0))
 
-  # --------- 特征整理：把RSSM/encoder出来的状态做成一个向量 ----------
-  def _to_feat(self, enc):
-    """
-    enc 可以是：
-      - dict，含 'z' / 'deter' / 'stoch' 等键（来自RSSM post/prior）
-      - ndarray，已是一个扁平向量（如直接给的 z_t）
-    返回： [*, D] 特征
-    """
-    if isinstance(enc, dict):
-      xs = []
-      for k in ('z', 'deter', 'stoch', 'embed'):
-        if k in enc:
-          v = enc[k]
-          if v.ndim > 2:
-            v = v.reshape(v.shape[:-2] + (-1,))
-          xs.append(v)
-      if not xs:
-        # 若没有上述键，就把所有数值键拼起来
-        for k, v in enc.items():
-          if isinstance(v, jnp.ndarray):
-            if v.ndim > 2:
-              v = v.reshape(v.shape[:-2] + (-1,))
-            xs.append(v)
-      feat = jnp.concatenate(xs, axis=-1) if len(xs) > 1 else xs[0]
-      return feat
-    else:
-      x = jnp.asarray(enc)
-      if x.ndim > 2:
-        x = x.reshape(x.shape[:-2] + (-1,))
-      return x
+        # 直接输出 3 维 logits；明确从 'embed' 取特征
+        self.gate_body = nets.MLP(
+            shape=None,          # 输出维度
+            layers=layers,
+            units=hidden,        # 隐藏层宽度
+            act='silu',
+            name=f'{name}_gate_body'
+        )
+        # 单独一层线性映射到 3 维 logits
+        self.gate_out = nets.Linear(3, name=f'{name}_gate_out')
+        # 优化器带兜底
+        self.opt = jaxutils.Optimizer(
+            name='router_opt',
+            **getattr(config, 'router_opt', {'opt':'adam','lr':1e-4,'eps':1e-8,'wd':0.0})
+        )
 
-  # --------- 前向：输出3个专家的概率 ----------
-  def __call__(self, enc_feat):
-    """
-    enc_feat: 世界模型encode后的状态量（dict或ndarray）
-    return: {'logits': [*,3], 'probs': [*,3]}
-    """
-    h = self._to_feat(enc_feat)                # [*, D]
-    out = self.router({'router': h})           # 兼容 nets.MLP 的返回风格
-    logits = out['router'] if isinstance(out, dict) else out
-    probs = jax.nn.softmax(logits, axis=-1)    # [*,3]
-    return {'logits': logits, 'probs': probs}
+        # 不要在 __init__ 里做 jnp.asarray；先存成 NumPy
+        import numpy as np
+        self._prior_np = np.asarray(
+            getattr(config, 'router_prior', [0.333, 0.333, 0.333]),
+            dtype=np.float32
+        )
 
-  # --------- 训练入口：与WorldModel一致风格 ----------
-  def train(self, batch):
-    """
-    batch 期望最少包含以下其一：
-      监督式： batch['moe']['w_target']  -> [N,3]
-      强化式： batch['moe']['chosen_expert'] -> [N,1] 且 batch['moe']['adv'] -> [N,1]
-    可同时提供，两者loss会自动相加（权重=1）。
-    你也可以在外部给adv = returns - baseline。
-    """
-    metrics, outs = self.opt([self.router], self.loss, batch, has_aux=True)
-    # metrics 已包含优化器统计，这里 outs 返回 {'probs','logits'} 和 loss 字典
-    outs, loss_dict = outs
-    metrics.update(loss_dict)
-    return outs, metrics
+        self.rnorm = jaxutils.Moments(**config.retnorm, name='router_rnorm')
+        print("MoERouterActor初始化成功")
 
-  # --------- 损失：优先用监督CE；否则用PG ----------
-  def loss(self, batch):
-    # 1) 取出输入特征（世界模型encode之后的状态量）
-    #    你可以把 z_t/post 放在 batch['moe_ctx']['enc'] 里；若实际键不同，替换下方索引即可
-    moe_ctx = batch.get('moe_ctx', {})
-    enc_feat = moe_ctx.get('enc')  # 推荐把 z_t 或 post 特征打包到这里
-    assert enc_feat is not None, "batch['moe_ctx']['enc'] 不能为空（需提供WM编码后的状态量）"
+    def _prior_jax(self):
+        # 在 jitted 的前向/损失里调用这个，会变成编译期常量，避免 H2D
+        prior = jnp.asarray(self._prior_np)
+        prior = prior / jnp.clip(prior.sum(), 1e-6, 1e9)
+        return prior
 
-    # 2) 前向
-    out = self(enc_feat)
-    logits, probs = out['logits'], out['probs']  # [N,3]
+    def _flatten_stoch(self, stoch):
+        # 通用：不管是 (B,T,S) 还是 (B,T,S,C) 都摊到 (B,T,*)。
+        return stoch.reshape(stoch.shape[0], stoch.shape[1], -1)
 
-    # 3) 监督式交叉熵（若提供 w_target）
-    ce_loss = 0.0
-    if 'moe' in batch and 'w_target' in batch['moe']:
-      w_tgt = jnp.asarray(batch['moe']['w_target'])            # [N,3]
-      w_tgt = w_tgt / jnp.clip(w_tgt.sum(-1, keepdims=True), 1e-8, 1.0)
-      logp = jax.nn.log_softmax(logits, axis=-1)               # [N,3]
-      ce = -(w_tgt * logp).sum(-1, keepdims=True)              # [N,1]
-      ce_loss = ce.mean()
+    def _forward(self, deter, stoch, prev_mean, prev_std):
+        # deter, stoch, prev_mean, prev_std: (B,T,*)
+        stoch = self._flatten_stoch(stoch)
+        x = jnp.concatenate([deter, stoch, prev_mean, prev_std], axis=-1)  # (B,T,D*)
+        h = self.gate_body({'tensor': x})  # (B,T,H) 纯张量
+        logits = self.gate_out(h)  # (B,T,3) 纯张量
+        probs  = jax.nn.softmax(logits / self.temp, axis=-1)
+        return logits, probs
 
-    # 4) 强化式 PG（若提供 chosen_expert + adv）
-    pg_loss = 0.0
-    if 'moe' in batch and 'chosen_expert' in batch['moe'] and 'adv' in batch['moe']:
-      act = jnp.asarray(batch['moe']['chosen_expert']).astype(jnp.int32)  # [N,1]
-      adv = jnp.asarray(batch['moe']['adv'])                               # [N,1]
-      oh  = jax.nn.one_hot(act.squeeze(-1), 3)                             # [N,3]
-      logp = jax.nn.log_softmax(logits, axis=-1)
-      logp_act = (oh * logp).sum(-1, keepdims=True)                        # [N,1]
-      pg_loss = -(logp_act * sg(adv)).mean()
+    def train(self, data, post):
+        print("MoERouterActor训练开始---------")
+        modules = [self.gate_body, self.gate_out]
+        mets, (outs, metrics) = self.opt(modules, self.loss, data, post, has_aux=True)
+        metrics.update(mets)
+        return outs, metrics
 
-    total = ce_loss + pg_loss
+    def loss(self, data, post):
+        deter, stoch = post['deter'], post['stoch']   # (B,T,*)
+        B,T = deter.shape[:2]; A = self.act_space.shape[-1]
+        # 用规划器写入的键名
+        prev_mean = data.get('log_action_mean', jnp.zeros((B,T,A), jnp.float32))
+        prev_std  = data.get('log_action_std',  jnp.zeros((B,T,A), jnp.float32))
+        logits, probs = self._forward(deter, stoch, prev_mean, prev_std)
+        eps = 1e-6
 
-    # 5) 指标
-    metrics = {
-      'moe_loss_total': total,
-      'moe_loss_ce': ce_loss if isinstance(ce_loss, jnp.ndarray) else jnp.asarray(ce_loss),
-      'moe_loss_pg': pg_loss if isinstance(pg_loss, jnp.ndarray) else jnp.asarray(pg_loss),
-      'moe_p_long_mean': probs[..., 0:1].mean(),
-      'moe_p_short_mean': probs[..., 1:2].mean(),
-      'moe_p_safe_mean': probs[..., 2:3].mean(),
-      'moe_entropy_mean': (-(probs * jnp.log(jnp.clip(probs, 1e-8, 1.0))).sum(-1)).mean(),
-    }
-    return total.mean(), (out, metrics)
+        cont  = data.get('cont', jnp.ones((B,T), jnp.float32))
+        valid = (cont > 0).astype(jnp.float32)[..., None]
+
+        # 奖励做优势（简单基线）
+        R = data['reward']
+        offset, invscale = self.rnorm(R)
+        adv = ((R - offset) / jnp.maximum(invscale, 1e-6))[..., None]
+
+        # 目标占比 khat：优先计数 → 记录的比例 → 当前 probs
+        if all(k in data for k in ['log_plan_num_traj','log_plan_num_pi','log_plan_num_gaus','log_plan_num_idm']):
+            K    = jnp.maximum(1.0, data['log_plan_num_traj'])
+            k_pi = data['log_plan_num_pi']; k_gaus = data['log_plan_num_gaus']; k_idm = data['log_plan_num_idm']
+            khat = jnp.stack([k_pi, k_gaus, k_idm], axis=-1) / K[..., None]
+        elif 'moe_ratio' in data or 'log_moe_ratio' in data:
+            khat = data.get('moe_ratio', data.get('log_moe_ratio'))
+        else:
+            khat = jax.lax.stop_gradient(probs)
+
+        logp = jnp.log(jnp.clip(probs, eps, 1.0))
+        L_policy = - jnp.sum(khat * logp, axis=-1, keepdims=True)
+        L_policy = adv * L_policy
+
+        # 熵与先验 KL 正则
+        H = -jnp.sum(probs * logp, axis=-1, keepdims=True)
+        ent_coef   = float(getattr(self.config, 'router_ent_coef',   1e-3))
+        prior_coef = float(getattr(self.config, 'router_prior_coef', 1e-3))
+        prior = jnp.clip(self._prior_jax(), eps, 1.0)
+        L_ent   = - ent_coef * H
+        L_prior =   prior_coef * jnp.sum(probs * (logp - jnp.log(prior)), axis=-1, keepdims=True)
+
+        w_pol = float(getattr(self.config, 'router_w_policy', 1.0))
+        L = (w_pol * L_policy + L_ent + L_prior)
+        L = (L * valid).sum() / jnp.maximum(1.0, valid.sum())
+
+        outs = {'router_probs': probs, 'router_logits': logits}
+        metrics = {
+            'router_loss': L,
+            'router_entropy': H.mean(),
+            'router_p_pi':  probs[...,0].mean(),
+            'router_p_gaus':probs[...,1].mean(),
+            'router_p_idm': probs[...,2].mean(),
+        }
+        return L, (outs, metrics)
+
+    # 规划器里用（无时间维），像 actor 一样：
+    def policy(self, latent, prev_mean, prev_std):
+        deter = latent['deter'][:, None]
+        stoch = latent['stoch'][:, None]
+        prev_mean = prev_mean[:, None];   prev_std = prev_std[:, None]
+        _, probs = self._forward(deter, stoch, prev_mean, prev_std)
+        return probs[:, 0]  # (N_env, 3)
+
+
 
 class WorldModel(nj.Module):
 
@@ -406,6 +426,7 @@ class WorldModel(nj.Module):
       act_space: 动作空间的字典，包含了动作数据及其形状。
       config: 配置参数的字典，包含了模型的各种超参数和设置。
       """
+      print("WorldModel初始化成功")
       # 存储观测空间、动作空间和配置参数
       self.obs_space = obs_space
       self.act_space = act_space['action']
@@ -462,6 +483,12 @@ class WorldModel(nj.Module):
       print("\n***世界模型模型训练***\n")
       # 初始化模块列表，包括编码器、RSSM模型和所有头部网络
       modules = [self.encoder, self.rssm, *self.heads.values()]
+
+      # if 'moe_ratio' in data:
+      #     moe = data['moe_ratio']  # (T, B, 3)
+      #     jax.debug.print("moe[0,0]={}, meanTB={}", moe[0, 0], jnp.mean(moe, axis=(0, 1)))
+      # else:
+      #     jax.debug.print("no moe_ratio in data")
 
       # 使用优化器对模块进行训练，同时计算损失和度量指标
       mets, (state, outs, metrics) = self.opt(
@@ -779,7 +806,6 @@ class WorldModel(nj.Module):
 
 class ImagSafeActorCritic(nj.Module):
   def __init__(self, critics, cost_critics, scales, cost_scales, act_space, config):
-      # 初始化函数，用于设置策略网络的批评家、成本批评家、比例、成本比例、动作空间和配置参数
       # 过滤批评家和成本批评家，仅保留那些在scales中有对应非零比例的项
       critics = {k: v for k, v in critics.items() if scales[k]}
       cost_critics = {k: v for k, v in cost_critics.items() if scales[k]}
@@ -1208,7 +1234,7 @@ class ImagActorCritic(nj.Module):
     self.retnorms = {
         k: jaxutils.Moments(**config.retnorm, name=f'retnorm_{k}')
         for k in critics}
-    print("ImagActorCritic--优化器")
+    print("Imag-ActorCritic--优化器")
     self.opt = jaxutils.Optimizer(name='actor_opt', **config.actor_opt)
 
   def initial(self, batch_size):

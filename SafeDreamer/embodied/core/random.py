@@ -14,8 +14,12 @@ class RandomAgent:
     act['log_entropy'] = np.zeros(batch_size)
     act['log_action_mean'] = np.zeros((batch_size, ) + self.act_space['action'].shape)
     act['log_action_std'] = np.zeros((batch_size, ) + self.act_space['action'].shape)
+    act['gaus_mean'] = np.zeros((batch_size, ) + self.act_space['action'].shape)
+    act['gaus_std'] = np.zeros((batch_size, ) + self.act_space['action'].shape)
     act['log_plan_num_safe_traj'] = np.zeros(batch_size)
     act['log_plan_ret'] = np.zeros(batch_size)
     act['log_plan_cost'] = np.zeros(batch_size)
     act['log_lagrange_penalty'] = np.zeros(batch_size)
+    num_experts = 3
+    act['moe_ratio'] = np.zeros((batch_size, num_experts), dtype=np.float32)
     return act, state
